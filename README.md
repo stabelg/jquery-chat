@@ -32,7 +32,7 @@ By default this options is set by null(default value), this means that you will 
 afterMessage and afterIq
 ===========
 
-You can pass functions to save the messages sent and receive by javascript.
+You can pass functions to save the messages sent and received by javascript.
 
 contactList
 ===========
