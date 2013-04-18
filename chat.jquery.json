@@ -15,8 +15,8 @@
     },
     "licenses": [
         {
-            "type": "GPL3",
-            "url": ""
+            "type": "GPL2",
+            "url": "https://github.com/gupraga/jquery-chat/blob/master/LINCESE"
         }
     ],
     "bugs": "https://github.com/gupraga/jquery-chat/issues",
