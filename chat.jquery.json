@@ -1,5 +1,5 @@
 {
-    "name": "chat",
+    "name": "xmppchat",
     "title": "jQuery Chat",
     "description": "jQuery plugin for chat via xmpp.",
     "keywords": [
