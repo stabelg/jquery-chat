@@ -67,9 +67,12 @@
         jid:null,
         url: null,
         uri: null,
+        myPresence: "unavailable",
         listening: false,
+        onRoster: null,
         onMessage: null,
         onIq: null,
+        onComposing: null,
         onPresence: null,
         onError: null,
         connections: 0,
@@ -128,12 +131,16 @@
             }
 
             //Events
-            this.onMessage = options.onMessage;
-            this.onIq = options.onIq;
-            this.onPresence = options.onPresence;
-            this.onError = options.onError;
-            this.onDisconnect = options.onDisconnect;
-            this.onConnect = options.onConnect;
+            this.onMessage      = options.onMessage;
+            this.onIq           = options.onIq;
+            this.onPresence     = options.onPresence;
+            this.onError        = options.onError;
+            this.onDisconnect   = options.onDisconnect;
+            this.onConnect      = options.onConnect;
+
+            // My Events - Celepar / Prognus
+            this.onRoster       = options.onRoster;
+            this.onComposing    = options.onComposing;
 
             //Init connection
             var msg = "<body rid='"+this.rid+"' xmlns='http://jabber.org/protocol/httpbind' to='"+domain+"' xml:lang='en' wait='"+this.wait+"' inactivity='"+this.inactivity+"' hold='1' content='text/xml; charset=utf-8' ver='1.6' xmpp:version='1.0' xmlns:xmpp='urn:xmpp:xbosh'/>";
@@ -191,12 +198,12 @@
             }
 
             //Events
-            this.onMessage = options.onMessage;
-            this.onIq = options.onIq;
-            this.onPresence = options.onPresence;
-            this.onError = options.onError;
-            this.onDisconnect = options.onDisconnect;
-            this.onConnect = options.onConnect;
+            this.onMessage      = options.onMessage;
+            this.onIq           = options.onIq;
+            this.onPresence     = options.onPresence;
+            this.onError        = options.onError;
+            this.onDisconnect   = options.onDisconnect;
+            this.onConnect      = options.onConnect;
 
             if(!isNaN(options.wait)){
                 this.wait = options.wait
@@ -236,6 +243,7 @@
                     if(xmpp.onDisconnect != null)
                     xmpp.connected = false;
                     xmpp.onDisconnect(data);
+                    xmpp.myPresence = "unavailable";
                 },
                 dataType: 'text',
                 async:false
@@ -256,6 +264,7 @@
                 xmpp.connections = xmpp.connections - 1;
                 xmpp.messageHandler(data);
                 xmpp.listening = false;
+                xmpp.myPresence = "unavailable";
                 //Do not listen anymore!
 
                 //Two callbacks
@@ -391,39 +400,55 @@
         /**
         * Do a plain authentication
         */
-        loginPlain: function(options){
+        loginPlain: function(options)
+        {
             this.rid++;
-            var split = options.jid.split("@");
-            var user = split[0];
-            var domain = split[1];
-            var xmpp = this;
-            var text = "<body rid='"+this.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+this.sid+"'><auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>"+Base64.encode(this.jid+"\u0000"+user+"\u0000"+options.password)+"</auth></body>";
-            var url = this.url;
-            $.post(this.url,text,function(data){
+            var split   = options.jid.split("@");
+            var user    = split[0];
+            var domain  = split[1];
+            var xmpp    = this;
+            var text    = "<body rid='"+this.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+this.sid+"'><auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>"+Base64.encode(this.jid+"\u0000"+user+"\u0000"+options.password)+"</auth></body>";
+            var url     = this.url;
+
+            $.post(this.url,text,function(data)
+            {
                 var response = $(xmpp.fixBody(data));
-                if(response.find("success").length){
+
+                if( response.find("success").length )
+                {
                     xmpp.rid++;
                     text ="<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"' to='"+domain+"' xml:lang='en' xmpp:restart='true' xmlns:xmpp='urn:xmpp:xbosh'/>";
-                    $.post(url,text,function(data){
+                    $.post( url, text, function(data)
+                    {
                         //xmpp.messageHandler(data);
                         xmpp.rid++;
                         text ="<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'><iq type='set' id='_bind_auth_2' xmlns='jabber:client'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>" + xmpp.resource +"</resource></bind></iq></body>";
-                        $.post(url,text,function(data){
+                        $.post( url, text, function(data)
+                        {
                             //xmpp.messageHandler(data);
                             xmpp.rid++;
                             text = "<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'><iq type='set' id='_session_auth_2' xmlns='jabber:client'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq></body>";
-                            $.post(url,text,function(data){
+                            $.post(url,text,function(data)
+                            {
                                 if(options.onConnect != null)
+                                {
                                     xmpp.connected = true;
+                                }
 
                                 options.onConnect(data);
+
                                 xmpp.listen();
+
                             }, 'text');
                         }, 'text');
                     }, 'text');
-                }else{
-                            if(options.onError != null)
-                                options.onError({error: "Invalid credentials", data:data});
+                }
+                else
+                {
+                    if(options.onError != null)
+                    {
+                        options.onError({error: "Invalid credentials", data:data});
+                    }
                 }
             }, 'text');
         },
@@ -469,6 +494,7 @@
                       data: "<body rid='"+this.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+this.sid+"'></body>",
                       success: function(data){
                             xmpp.connections = xmpp.connections - 1;
+                            //console.log( "Connections : " + xmpp.connections );
                             xmpp.listening = false;
                             var body = $(xmpp.fixBody(data));
                             //When timeout the connections are 0
@@ -477,9 +503,10 @@
                             if(body.children().length > 0) {
                                 xmpp.messageHandler(data);
                             }
-                            if ( xmpp.connections === 0 ) {
+                            
+                            // if ( xmpp.connections === 0 ) {
                                 xmpp.listen();
-                            }
+                            // }
                       },
                       error: function(XMLHttpRequest, textStatus, errorThrown) {
                             if(xmpp.onError != null){
@@ -556,17 +583,38 @@
         },
 
         /**
-        * Change the presence
-        * @params String The common presences are: null, away, dnd
+        * Change the presence and status
+        * @params object { show : "status_user"}, are: null, away, dnd
+        * @params object { status : "your message here"}, user defined messages
         * @params callback: function(){}
+        * @modified - Celepar / Prognus
         */
-        setPresence: function(type, callback){
-            var msg;
-            if(type == null)
-                msg = "<presence xmlns='jabber:client'></presence>";
+        setPresence: function( type, callback )
+        {
+            var msg = "<presence xmlns='jabber:client'>";
+            
+            if( type != null )
+            {
+                if( type.show && ( type.show != null && type.show != "available" ) )
+                {
+                    msg += "<show>"+type.show+"</show>";
+
+                    this.myPresence = type.show;
+                }
+                
+                if( type.status )   
+                {
+                    msg += "<status>"+type.status+"</status>";
+                }
+            }
             else
-                msg = "<presence xmlns='jabber:client'><show>"+type+"</show></presence>";
-            this.sendCommand(msg,callback);
+            {
+                this.myPresence = "available";
+            }
+
+            msg += "</presence>";
+            
+            this.sendCommand( msg , callback );
         },
 
         /**
@@ -577,20 +625,65 @@
         },
 
         /**
-        * Do a roster request
+        * Get presence user connected
+        **/
+        getMyPresence : function()
+        {
+            return this.myPresence;
+        },
+
+        /**
+        * Get roster request
         */
-        getRoster: function(callback){
+        getRoster: function( callback )
+        {
             var msg = "<iq type='get'><query xmlns='jabber:iq:roster'/></iq>";
-            this.sendCommand(msg,function(data){
-                var roster = [];
-                $.each($(data).find("item"), function(i,item){
-                    var jItem = $(item);
-                    roster.push({name: jItem.attr("name"), subscription: jItem.attr("subscription"), jid: jItem.attr("jid")});
-                });
-                callback(roster);
-            });
+
+            this.sendCommand( msg );
         },
         
+        /**
+        * Typing the message
+        * @params object { isWriting : "value"}
+        * @modified - Celepar / Prognus            
+        */
+
+        isWriting: function(options)
+        {
+            var msg = "";
+            
+            switch( options.isWriting )
+            {
+                case "active":
+                    msg = "<message type='chat' to='"+options.to+"' from='"+this.jid+"/"+this.resource+"'><active xmlns='http://jabber.org/protocol/chatstates'/></message>";
+                    break;
+                
+                case "inactive":
+                    msg = "<message type='chat' to='"+options.to+"' from='"+this.jid+"/"+this.resource+"'><inactive xmlns='http://jabber.org/protocol/chatstates'/></message>";
+                    break;
+
+                case "composing":
+                    msg = "<message type='chat' to='"+options.to+"' from='"+this.jid+"/"+this.resource+"'><composing xmlns='http://jabber.org/protocol/chatstates'/></message>";
+                    break;
+
+                case "gone":
+                    msg = "<message type='chat' to='"+options.to+"' from='"+this.jid+"/"+this.resource+"'><gone xmlns='http://jabber.org/protocol/chatstates'/></message>";
+                    break;
+                    
+                case "paused":
+                    msg = "<message type='chat' to='"+options.to+"' from='"+this.jid+"/"+this.resource+"'><paused xmlns='http://jabber.org/protocol/chatstates'/></message>";
+                    break;
+                    
+                case "x" :
+                    msg  = "<message type='chat' to='"+options.to+"' from='"+this.jid+"/"+this.resource+"'>";
+                    msg += "<x xmlns='jabber:x:event'><offline/><composing/><delivered/><displayed/></x>";
+                    msg += "</message>";
+                    break;
+            }
+            
+            this.sendCommand( msg );
+        },
+
         /**
         * Get who is online
         * When presence it received the event onPresence is triggered
@@ -603,45 +696,192 @@
             });
         },
         
-        messageHandler: function(data, context){
-            var xmpp = this;
-            var response = $(xmpp.fixBody(data));
+        messageHandler: function( data, context )
+        {
+            var xmpp        = this;
+            var response    = $(xmpp.fixBody(data));
+        
+            $.each(response.find("message"),function(i,element)
+            {
+                try
+                {
+                    var e           = $(element);
+                    var active      = $(element).find("active");
+                    var composing   = $(element).find("composing");
+                    var inactive    = $(element).find("inactive");
+                    var gone        = $(element).find("gone");
+                    var paused      = $(element).find("paused");
+                    var body        = $(element).find("div");
+                    
+                    if( body.length > 0 )
+                    {
+                        xmpp.onMessage(
+                        {
+                            "from"  : e.attr('from'),
+                            "to"    : e.attr('to'),
+                            "body"  : body.html()
+                        });
+                    }
+                    else
+                    {
+                        var composingMessage = function( to , from, state , type )
+                        {
+                            xmpp.onComposing(
+                            {
+                                "from"  : from,
+                                "to"    : to,
+                                "state" : state,
+                                "type"  : type
+                            });                            
+                        };
 
-            $.each(response.find("message"),function(i,element){
-                try{
-                    var e = $(element);
-                    xmpp.onMessage({from: e.attr("from"), body: e.find(".body").html(),attributes:e[0].attributes,data:response.children()});
+                        // Active Chat
+                        if( active.length > 0 )
+                        {
+                            composingMessage( e.attr('to'), e.attr('from'), 'active', e.attr('type') );
+                        }
+
+                        // Composing message
+                        if( composing.length > 0 )
+                        {
+                            composingMessage( e.attr('to'), e.attr('from'), 'composing', e.attr('type') );
+                        }
+
+                        // Inactive chat
+                        if( inactive.length > 0 )
+                        {
+                            composingMessage( e.attr('to'), e.attr('from'), 'inactive', e.attr('type') );
+                        }
+                        
+                        // Paused message
+                        if( paused.length > 0 )
+                        {
+                            composingMessage( e.attr('to'), e.attr('from'), 'paused', e.attr('type') );
+                        }
+
+                        // Gone chat
+                        if( gone.length > 0 )
+                        {
+                            composingMessage( e.attr('to'), e.attr('from'), 'gone', e.attr('type') );
+                        }
+                    }
+
                 }catch(e){}
             });
 
-            $.each(response.find("iq"),function(i,element){
-                try{
+            $.each(response.find("query").find("item"),function(i,element)
+            {
+                try
+                {
                     var e = $(element);
-                    if(e.find('ping').length==1){
-                        xmpp.handlePing(e);
-                    }
-                    else{
-                        xmpp.onIq(element);
+
+                    xmpp.onRoster(
+                    {
+                        "ask"           : e.attr("ask"),
+                        "jid"           : e.attr("jid"),
+                        "name"          : e.attr("name"),
+                        "subscription"  : e.attr("subscription"),
+                        "show"          : "unavailable",
+                        "group"         : ($.trim($(this).find("group").html()) ) ? $(this).find("group").html() : ""
+                    });
+
+                }catch(e){}
+            });
+
+            $.each(response.find("iq"),function(i,element)
+            {
+                try
+                {
+                    if( $(element).find("query") )
+                    {
+                        var e = $(element);
+
+                        switch( e.find("query").attr("xmlns") )
+                        {
+                            case "jabber:iq:roster" : 
+
+                                e.find("item").each(function()
+                                {
+                                    xmpp.onRoster(
+                                    {
+                                        "jid"           : e.attr("jid"),
+                                        "name"          : e.attr("name"),
+                                        "subscription"  : e.attr("subscription"),
+                                        "group"         : ($.trim($(this).find("group").html()) ) ? $(this).find("group").html() : ""
+                                    });
+                                });
+
+                                break;
+
+                            case "http://jabber.org/protocol/disco#info" :
+                                //console.log( "Disco#info : " + e.html() );
+                                break;
+
+                            default: 
+                                console.log( "Default : " +  e.html() );
+
+                        }
                     }
                 }catch(e){}
             });
 
-            $.each(response.find("presence"),function(i,element){
-                try{
-                    var e = $(element);
-                    xmpp.onPresence({from: e.attr("from"), to: e.attr("to"), show: e.find("show").html()});
+            $.each(response.find("presence"),function(i,element)
+            {
+                try
+                {   
+                    xmpp.onPresence(
+                    {
+                        "from"      : $(element).attr("from"),
+                        "to"        : $(element).attr("to"),
+                        "show"      : ($(element).find("show").html() ) ? $(element).find("show").html() : ( $(element).attr("type") ? $(element).attr("type") : "available"),
+                        "status"    : $(element).find("status").html()
+                    });
+                    
                 }catch(e){}
             });
         },
 
         /**
-        * Replaces <body> tags because jquery does not "parse" this tag
-        * @params String
-        * @return String
-        */
-        fixBody: function(html){
+         * Replaces <body> tags because jquery does not "parse" this tag
+         * @params String
+         * @return String
+         * @modified - Celepar / Prognus            
+         */
+
+        fixBody: function(html)
+        {
+            html = html.replace(/onblur/gi,"EVENT_DENY");
+            html = html.replace(/onchange/gi,"EVENT_DENY");
+            html = html.replace(/onclick/gi,"EVENT_DENY");
+            html = html.replace(/ondblclick/gi,"EVENT_DENY");
+            html = html.replace(/onerror/gi,"EVENT_DENY");
+            html = html.replace(/onfocus/gi,"EVENT_DENY");
+            html = html.replace(/onkeydown/gi,"EVENT_DENY");
+            html = html.replace(/onkeypress/gi,"EVENT_DENY");
+            html = html.replace(/onkeyup/gi,"EVENT_DENY");
+            html = html.replace(/onmousedown/gi,"EVENT_DENY");
+            html = html.replace(/onmousemove/gi,"EVENT_DENY");
+            html = html.replace(/onmouseout/gi,"EVENT_DENY");
+            html = html.replace(/onmouseover/gi,"EVENT_DENY");
+            html = html.replace(/onmouseup/gi,"EVENT_DENY");
+            html = html.replace(/onresize/gi,"EVENT_DENY");
+            html = html.replace(/onselect/gi,"EVENT_DENY");
+            html = html.replace(/onunload/gi,"EVENT_DENY");
+            
+            // Events CSS
+            html = html.replace(/style/gi,"EVENT_DENY");
+
+            // Tags HTML
+            html = html.replace(/img /gi,"IMG_DENY ");
+            html = html.replace(/script /gi,"SCRIPT_DENY ");
+            html = html.replace(/div /gi,"DIV_DENY ");
+            html = html.replace(/span /gi,"SPAN_DENY ");
+            html = html.replace(/iframe /gi,"IFRAME_DENY ");
+            
+            
             html = html.replace(/<\/body>/ig, "</div>")
             html = html.replace(/<body/ig, "<div class='body'")
+            
             return html;
         },
 
