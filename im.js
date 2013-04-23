@@ -163,7 +163,7 @@
 
 					$.xmpp.getRoster();
 					$.xmpp.setPresence(settings.defaultStatus);
-					console.log($.xmpp.getMyPresence());
+					//console.log($.xmpp.getMyPresence());
 
 					$container.find("."+settings.loadClass).removeClass(settings.loadClass);
 					
