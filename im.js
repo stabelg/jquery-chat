@@ -69,7 +69,7 @@
 		    		emotionClass: "thumb_down"
 		    	}
 		    ],
-		    addContact : undefined
+		    addContact : true
 	  	};
 
   		var settings = {},
@@ -101,24 +101,24 @@
 	        autoHide: true,
 	        items: {
 	            "online": {name: "Online", icon: settings.onlineClass, callback: function(key, opt){ 
-	            	$.xmpp.setPresence(null); 
+	            	$.xmpp.setPresence({show:null}); 
 	            	$(opt.selector).removeClass(statusClasses).addClass(settings.onlineClass); 
 	            }},
 	            "busy": {name: "Busy", icon: settings.busyClass, callback: function(key, opt){ 
-	            	$.xmpp.setPresence("dnd"); 
+	            	$.xmpp.setPresence({show:"dnd"}); 
 	            	$(opt.selector).removeClass(statusClasses).addClass(settings.busyClass); 
 	            }},
 	            "away": {name: "Away", icon: settings.awayClass, callback: function(key, opt){
-	            	$.xmpp.setPresence("away"); 
+	            	$.xmpp.setPresence({show: "away"}); 
 	            	$(opt.selector).removeClass(statusClasses).addClass(settings.awayClass); 
 	            }},
 	            "offline": {name: "Offline", icon: settings.offlineClass, callback: function(key, opt){
-	            	$.xmpp.setPresence("offline"); 
+	            	$.xmpp.setPresence({show:"unavailable"}); 
 	            	$(opt.selector).removeClass(statusClasses).addClass(settings.offlineClass); 
 	            }},
+	            "sep1": "---------",
 	            "quit": {name: "Quit", icon: "quit", callback: function(key, opt){
 	            	$.xmpp.disconnect();
-	            	
 	            }}
 	        }
 	    });
@@ -157,7 +157,7 @@
 					if(settings.debug)
 						debug("Disconnected");
 				},
-				onConnect: function(){
+				onConnect: function(eas){
 					if(settings.debug)
 						debug("Connected to xmpp");
 
@@ -190,6 +190,7 @@
 					if(settings.debug)
 						debug(iq);
 					var from = $(iq).find("own-message").attr("to");
+					from = from.match(/^[\w\W][^\/]+[^\/]/g)[0];
 					var id = MD5.hexdigest(from);
 					var conversation = $("#"+id+"_chat");
 					if(conversation.length == 0){
@@ -203,22 +204,21 @@
 
 					$("<div/>")
 					.addClass("chat-conversation-box-me")
-					.html(date+"<strong> Eu: </strong>"+formatters($(iq).find("div").html()))
+					.html(date+"<strong> Me: </strong>"+formatters($(iq).find("div").html()))
 					.appendTo(conversation_box);
 					conversation_box.scrollTo("div:last");
 					conversation_box.next().html("");
-					if(settings.afterMessage)
-						afterIq(iq);
 				},
 				onMessage: function(message){
 					if(settings.debug)
 						debug(message);
+					message.from = message.from.match(/^[\w\W][^\/]+[^\/]/g)[0];
 					var jid = message.from.split("/");
 					var id = MD5.hexdigest(message.from);
 					var conversation = $("#"+id+"_chat");
 					if(message.body){
 						if(conversation.length == 0){
-							conversation = openChat({title: contacts[id], from:message.from, id: id+"_chat", md5_id:id});
+							conversation = openChat({title: (contacts[id] ? contacts[id]:message.from) , from:message.from, id: id+"_chat", md5_id:id});
 							conversation.parent().find(".ui-dialog-titlebar").prepend($("#"+id).find(".chat-status").clone().removeClass("chatting"));
 						}else{
 							conversation.wijdialog("open");
@@ -230,9 +230,9 @@
 					if(message.body){
 						$("<div/>")
 						.addClass("chat-conversation-box-you")
-						.html(date+"<strong> "+contacts[id]+": </strong>"+formatters(message.body))
+						.html(date+"<strong> "+(contacts[id] ? contacts[id]:message.from)+": </strong>"+formatters(message.body))
 						.appendTo(conversation_box);
-						conversation_box.scrollTo("div:last");
+						conversation_box.scrollTo("div:last").next().html("");
 						conversation.parent().find(".ui-dialog-titlebar").addClass("new");
 						document.title = settings.title;
 						document.getElementById("new_message_sound").play();
@@ -252,6 +252,8 @@
 				onPresence: function(presence){
 					if(settings.debug)
 						debug(presence);
+
+					presence.from = presence.from.match(/^[\w\W][^\/]+[^\/]/g)[0];
 					var md5_contact = MD5.hexdigest(presence.from);
 					var select = $("#"+md5_contact);
 					var statusClass = 
@@ -263,8 +265,8 @@
 						: settings.onlineClass;
 					var from = presence.from.split("@")[0];
 					var dialogs = $("#"+md5_contact+"_chat");
-					if(!select.length){
-						var contact = $("<li/>")
+					if(select.length){
+						/*var contact = $("<li/>")
 						.attr("title", "Clique para iniciar uma conversa com "+from)
 						.attr("id", md5_contact)
 						.addClass(settings.contactClass);
@@ -291,26 +293,29 @@
 							}
 						});
 						$container_list.append(contact);
-					}else{
+					}else{*/
+						select = select.detach();
+
 						var onlines = $container_list.find("."+settings.onlineClass+":last");
 						var busys = $container_list.find("."+settings.busyClass+":last");
 						var aways = $container_list.find("."+settings.awayClass+":last");
 
-						select.find('div.chat-contact-description')
-						.html(presence['status'] ? "("+presence['status']+")" : "");
+						select.find('.chat-contact-description')
+						.html(presence['status'] ? " ("+presence['status']+")" : "");
 
 						select.find("div.chat-status")
 						.removeClass(statusClasses)
 						.addClass(statusClass);
+						
 						if(statusClass == settings.onlineClass){
-							$container_list.prepend(select.detach());
+							$container_list.prepend(select);
 						}else if(statusClass == settings.busyClass){
-							onlines.length ? onlines.after(select.detach()) : $container_list.prepend(select.detach());
+							onlines.length ? onlines.after(select) : $container_list.prepend(select);
 						}else if(statusClass == settings.awayClass){
-							busys.length ? busys.after(select.detach()) : 
-								( onlines.length ?  onlines.after(select.detach()) : $container_list.prepend(select.detach())) ;
+							busys.length ? busys.after(select) : 
+								( onlines.length ?  onlines.after(select) : $container_list.prepend(select)) ;
 						}else{
-							$container_list.append(select.detach());
+							$container_list.append(select);
 						}
 
 						if(dialogs.length){
@@ -331,6 +336,7 @@
 				},
    				onComposing: function(message)
    				{
+   					message.from = message.from.match(/^[\w\W][^\/]+[^\/]/g)[0];
 					var id = MD5.hexdigest(message.from);
 					var conversation = $("#"+id+"_chat");
 					if(conversation.length){
@@ -346,6 +352,9 @@
 							case 'gone':
 								conversation_box.html("").html("<span class='active'></span>Gone "+date);
 								break;
+							case 'paused':
+								conversation_box.html("").html("<span class='paused'></span>"+contacts[id]+" stopped typing...");
+								break;
 							default:
 								conversation_box.html("");
 						}
@@ -358,47 +367,51 @@
    					if(settings.debug)
 						debug(roster);		
 
+					roster.jid = roster.jid.match(/^[\w\W][^\/]+[^\/]/g)[0];
    					var md5_contact = MD5.hexdigest(roster.jid);
 					var select = $("#"+md5_contact);
-					var from = roster['name'];
+					var from = roster['name'] ? roster['name'] : roster.jid;
 
 					contacts[md5_contact] = from;
 
-					if(select.length){
+					if(!select.length){
+						//select.find(".chat-contact-name").html(from);
+	   					var contact = $("<li/>")
+						.attr("title", "Clique para iniciar uma conversa com "+from)
+						.attr("id", md5_contact)
+						.addClass(settings.contactClass);
+						
+						var status = $("<div/>")
+						.addClass("chat-status")
+						.addClass(settings.offlineClass)
+						.appendTo(contact);
+
+						$("<span/>")
+						.addClass("chat-contact-name")
+						.html(from)
+						.appendTo(contact);
+
+						$("<span/>")
+						.addClass("chat-contact-description")
+						//.html(from)
+						.appendTo(contact);
+
+						contact.click(function(){
+							var id = md5_contact+"_chat";
+							var conversation = $("#"+id);
+							if(conversation.length == 0){
+								conversationDialog = openChat({title:from, from: roster.jid, id: id, md5_id:md5_contact});
+								conversationDialog.parent().find(".ui-dialog-titlebar").prepend(status.clone().removeClass("chatting"));
+							}
+							else{
+								conversation.wijdialog("restore");
+								conversation.wijdialog("open");
+							}
+						});
+						$container_list.append(contact);	
+					}else{
 						select.find(".chat-contact-name").html(from);
 					}
-   					var contact = $("<li/>")
-					.attr("title", "Clique para iniciar uma conversa com "+from)
-					.attr("id", md5_contact)
-					.addClass(settings.contactClass);
-					
-					var status = $("<div/>")
-					.addClass("chat-status")
-					.addClass(settings.offlineClass)
-					.appendTo(contact);
-
-					$("<span/>")
-					.addClass("chat-contact-name")
-					.html(from)
-					.appendTo(contact);
-
-					$("<span/>")
-					.addClass("chat-contact-description")
-					//.html(from)
-					.appendTo(contact);
-
-					contact.click(function(){
-						var id = md5_contact+"_chat";
-						var conversation = $("#"+id);
-						if(conversation.length == 0){
-							conversationDialog = openChat({title:from, from: roster.jid, id: id, md5_id:md5_contact});
-							conversationDialog.parent().find(".ui-dialog-titlebar").prepend(status.clone().removeClass("chatting"));
-						}
-						else{
-							conversation.wijdialog("open");
-						}
-					});
-					$container_list.append(contact);	
    				}
 		    };
 
@@ -427,8 +440,23 @@
 				.addClass("chat-add")
 				.appendTo(div)
 				.attr("title", "Add Contact")
-				.click(settings.addContact);		
-			}
+				.click(addContact());	
+
+				$("<div/>")
+				.addClass("chat-add-contact")
+				.wijdialog({
+					autoOpen: false,
+					buttons: [
+						{
+							text:"Adicionar", 
+							click: function(){
+								
+							}
+						}
+					]
+				})
+				.appendTo("body");	
+			}			
 
 			var text = "";
 			$("<input class='chat-description-input' type='text' placeholder='Your presentation message' readonly>")
@@ -484,6 +512,10 @@
 					debug("Prepared");
 	  	}
 
+	  	function addContact(){
+			
+	  	}
+
 	  	function generateContacts(container_list){
 	  		if(settings.contactList.length){
 	  			for(var contact in settings.contactList)
@@ -523,6 +555,7 @@
 						conversationDialog.parent().find(".ui-dialog-titlebar").prepend(status.clone().removeClass("chatting"));
 					}
 					else{
+						conversation.wijdialog("restore");
 						conversation.wijdialog("show");
 					}
 				});
@@ -554,7 +587,7 @@
 	  				//set a timer
 	  				$(this).parents(".chat-conversation-dialog").parent().find(".ui-dialog-titlebar").removeClass("new");
 	  				if(composingTimeOut){
-	  					$.xmpp.isWriting({isWriting : 'composing', from:options.from});
+	  					$.xmpp.isWriting({isWriting : 'composing', to:options.from});
 	  					composingTimeOut = false;
 	  				}
 	  				if(e.which == $.ui.keyCode.ENTER && !e.shiftKey){
@@ -564,33 +597,38 @@
 	  					if(settings.debug)
 							debug("Sending message: "+message+"\nfrom: "+options.from);
 	  					$.xmpp.sendMessage({body: message, to:options.from, resource:"Chat", otherAttr:"value"},
-	   						"<error>Ocorreu um erro ao enviar esta mensagem</error>",function(e){
-	   							composingTimeOut = true;
-	   							if(!$(e).find("own-message").length){
-	   								var error = $("<div/>")
-									.addClass("chat-conversation-box-error")
-									.html("<strong>Problema ao entregar mensagem: </strong> "+message);
+	   						"<error>Ocorreu um erro ao enviar esta mensagem</error>");
 
-									$(div).find(".chat-conversation-box").append(error).scrollTo("div:last");
-	   							}else{
-		   							if(settings.debug)
-										debug("message sent");
-								}
-							}
-						);
+	  					var conversation_box = div.find(".chat-conversation-box");
+						var date = "<span style='font-size:9px;'>("+(new Date().toString("HH:mm"))+")</span>";
+
+						$("<div/>")
+						.addClass("chat-conversation-box-me")
+						.html(date+"<strong> Me: </strong>"+formatters(message))
+						.appendTo(conversation_box);
+						conversation_box.scrollTo("div:last");
+						conversation_box.next().html("");
+
+						//$.xmpp.isWriting({isWriting : 'active', to:options.from});
+						composingTimeOut = true;
+						clearTimeout(pauseTimeOut);
+						return;	
 	  				}
 	  				clearTimeout(pauseTimeOut);
 	  				pauseTimeOut = setTimeout(function(){
-	  					$.xmpp.isWriting({isWriting : 'paused', from:options.from});
+	  					if(textarea.val() != "")
+	  						$.xmpp.isWriting({isWriting : 'paused', to:options.from});
+	  					else
+	  						$.xmpp.isWriting({isWriting : 'inactive', to:options.from});
 	  					composingTimeOut = true;
 	  				},5000);
 
-	  			}).focus(function(){
-	  				$(this).parents(".chat-conversation-dialog").parent().find(".ui-dialog-titlebar").removeClass("new");
-	  				$.xmpp.isWriting({isWriting : 'active', from:options.from});
+	  			})/*.focus(function(){
+	  				//$(this).parents(".chat-conversation-dialog").parent().find(".ui-dialog-titlebar").removeClass("new");
+	  				//$.xmpp.isWriting({isWriting : 'active', to:options.from});
 	  			}).focusout(function(){
-	  				$.xmpp.isWriting({isWriting : 'inactive', from:options.from});
-	  			});
+	  				//$.xmpp.isWriting({isWriting : 'inactive', to:options.from});
+	  			})*/;
 
 	  			$(div).append('<audio controls id="new_message_sound" style="display:none;"><source src="'+settings.soundPath+settings.soundName+'.mp3" type="audio/mpeg"/><source src="'+settings.soundPath+settings.soundName+'.ogg" type="audio/ogg"/></audio>');
 	  			var status = $("#"+options.md5_id).find(".chat-status");
@@ -614,16 +652,24 @@
 	                close: function (e) {
 	                	status
 	                	.removeClass("chatting");
-	                	$.xmpp.isWriting({isWriting : 'gone', from:options.from});
+	                	$.xmpp.isWriting({isWriting : 'gone', to:options.from});
 	                },
 	                focus: function(e){
-	                	$(this).parent().find(".ui-dialog-titlebar").removeClass("new");
+	                	
 	                	$(this).find("textarea").focus().click();
 	                	document.title = settings.defaultTitle;
-	                	$.xmpp.isWriting({isWriting : 'active', from:options.from});
+	                	if($(this).parent().find(".ui-dialog-titlebar").hasClass("new")){
+	                		$(this).parent().find(".ui-dialog-titlebar").removeClass("new");
+		                	clearTimeout(pauseTimeOut);
+		  					$.xmpp.isWriting({isWriting : 'active', to:options.from});
+	  					}
+	                	
 	                },
 	                blur: function(e){
-	                	$.xmpp.isWriting({isWriting : 'inactive', from:options.from});
+	                	pauseTimeOut = setTimeout(function(){
+		  					$.xmpp.isWriting({isWriting : 'inactive', to:options.from});
+		  					//composingTimeOut = true;
+	  					},3000);
 	                }
 	            }); 
 	  		}else{

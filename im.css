@@ -294,16 +294,6 @@ div.footer-conversation-bar{
 	color: #9F9F9F;
 }
 
-.chat-composing-box .read-icon{
-	width: 16px;
-	height: 16px;
-	display: inline-block;
-	vertical-align: top;
-	background-repeat: no-repeat;
-	background-size: auto;
-	background-image: url("images/emoticon_wink.png");
-}
-
 .footer-conversation-bar .chat-conversation-dialog .ui-resizable-handle, .ui-dialog.chat-conversation-dialog .ui-resizable-handle{
 	display: none !important;
 }
