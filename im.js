@@ -266,34 +266,6 @@
 					var from = presence.from.split("@")[0];
 					var dialogs = $("#"+md5_contact+"_chat");
 					if(select.length){
-						/*var contact = $("<li/>")
-						.attr("title", "Clique para iniciar uma conversa com "+from)
-						.attr("id", md5_contact)
-						.addClass(settings.contactClass);
-						
-						var status = $("<div/>")
-						.addClass("chat-status")
-						.addClass(statusClass)
-						.addClass(dialogs.length ? "chatting" : "").appendTo(contact);
-
-						$("<span/>")
-						.addClass("chat-contact-name")
-						.html(from)
-						.appendTo(contact);
-
-						contact.click(function(){
-							var id = md5_contact+"_chat";
-							var conversation = $("#"+id);
-							if(conversation.length == 0){
-								conversationDialog = openChat({title:from, from: presence.from, id: id, md5_id:md5_contact});
-								conversationDialog.parent().find(".ui-dialog-titlebar").prepend(status.clone().removeClass("chatting"));
-							}
-							else{
-								conversation.wijdialog("open");
-							}
-						});
-						$container_list.append(contact);
-					}else{*/
 						select = select.detach();
 
 						var onlines = $container_list.find("."+settings.onlineClass+":last");
@@ -310,10 +282,10 @@
 						if(statusClass == settings.onlineClass){
 							$container_list.prepend(select);
 						}else if(statusClass == settings.busyClass){
-							onlines.length ? onlines.after(select) : $container_list.prepend(select);
+							onlines.length ? onlines.parent().after(select) : $container_list.prepend(select);
 						}else if(statusClass == settings.awayClass){
-							busys.length ? busys.after(select) : 
-								( onlines.length ?  onlines.after(select) : $container_list.prepend(select)) ;
+							busys.length ? busys.parent().after(select) : 
+								( onlines.length ?  onlines.parent().after(select) : $container_list.prepend(select)) ;
 						}else{
 							$container_list.append(select);
 						}
