@@ -372,6 +372,31 @@
 					var select = $("#"+md5_contact);
 					var from = roster['name'] ? roster['name'] : roster.jid;
 
+					if(roster.subscription == "from" || roster.subscription == "subscribe"){
+						noty({
+							text: 'The '+from+' wants to see when you are online',
+							layout: 'topRight',
+							type: 'confirm',
+							buttons: [
+							    {addClass: 'btn btn-primary', text: 'Ok', onClick: function($noty) {
+							        // this = button element
+							        // $noty = $noty element subscribed
+							        $.xmpp.subscription({to:roster.jid, type:'subscribed'});
+							        $noty.close();
+							        noty({text: from+' was accepted', type: 'success',layout: 'topRight'});
+							      }
+							    },
+							    {addClass: 'btn btn-danger', text: 'Cancel', onClick: function($noty) {
+							    	//unsubscribed
+							    	$.xmpp.subscription({to:roster.jid, type:'unsubscribed'});
+							        $noty.close();
+							        noty({text: from+' will not see you online', type: 'error',layout: 'topRight'});
+							      }
+							    }
+						 	]	
+						});
+					}
+
 					contacts[md5_contact] = from;
 
 					if(!select.length){
@@ -436,30 +461,18 @@
 			.appendTo(div);
 
 			if(settings.addContact){
-				$("<span/>")
+				var addSpan = $("<span/>")
 				.addClass("chat-add")
 				.appendTo(div)
 				.attr("title", "Add Contact")
-				.click(addContact());	
-
-				$("<div/>")
-				.addClass("chat-add-contact")
-				.wijdialog({
-					autoOpen: false,
-					buttons: [
-						{
-							text:"Adicionar", 
-							click: function(){
-								
-							}
-						}
-					]
-				})
-				.appendTo("body");	
+				.click(addContact);	
 			}			
 
 			var text = "";
-			$("<input class='chat-description-input' type='text' placeholder='Your presentation message' readonly>")
+			$("<input/>")
+			.addClass('chat-description-input')
+			.attr({type: 'text', placeholder: 'Double click to edit', readonly: "readonly", title: "Double click to edit"})
+			.wijtextbox()
 			.dblclick(function(){
 				if( $.xmpp.isConnected() ){
 					text = $(this).val();
@@ -513,7 +526,70 @@
 	  	}
 
 	  	function addContact(){
-			
+	  		if(!$.xmpp.isConnected())
+	  			return false;
+	  		var offset = $(this).offset();
+			var div = $("<div/>")
+			.addClass("chat-add-contact");
+
+			$("<span>")
+			.html("Name: ")
+			.appendTo(div);
+
+			$("<input type='text'>")
+			.attr('name', 'name')
+			.appendTo(div);
+
+			$("<br/>")
+			.appendTo(div);
+
+			$("<span>")
+			.html("E-mail: ")
+			.appendTo(div);
+
+			$("<input type='text'>")
+			.attr('name', 'to')
+			.appendTo(div);
+
+			$(div).find("input").wijtextbox();
+
+			div.wijdialog({
+				autoOpen: true,
+				title: 'Add Contact',
+				captionButtons: {
+	                pin: { visible: false },
+	                refresh: { visible: false },
+	                toggle: { visible: false },
+	                minimize: { visible: false },
+	                maximize: { visible: false }
+			    },
+			    resizable: false,
+				position: [offset.left,offset.top],
+				buttons: [
+					{
+						text:"Add", 
+						click: function(){
+							var data = {};
+							$.each($(this).find("input"), function(e, q){
+								data[$(q).attr("name")] = $(q).val();
+							});
+							data['type'] = "subscribe";
+							$.xmpp.addContact(data);
+							$.xmpp.subscription(data);
+						}
+					},
+					{
+						text:"Cancel", 
+						click: function(){
+							$(this).wijdialog("close");
+						}	
+					}
+				],
+				close: function(){
+					$(this).wijdialog ("destroy");
+				}
+			});
+			//.appendTo("body");	
 	  	}
 
 	  	function generateContacts(container_list){
