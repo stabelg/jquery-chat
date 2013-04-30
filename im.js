@@ -517,7 +517,7 @@
 			.appendTo(div);
 
 			$("<input type='text'>")
-			.attr('name', 'name')
+			.attr({name: 'name', placeholder: 'Enter a name'})
 			.appendTo(div);
 
 			$("<br/>")
@@ -528,7 +528,7 @@
 			.appendTo(div);
 
 			$("<input type='text'>")
-			.attr('name', 'to')
+			.attr({name: 'to', placeholder: 'Enter a valid e-mail'})
 			.appendTo(div);
 
 			$(div).find("input").wijtextbox();
@@ -536,6 +536,8 @@
 			div.wijdialog({
 				autoOpen: true,
 				title: 'Add Contact',
+				draggable: false,
+				dialogClass: "add-contact-dialog",
 				captionButtons: {
 	                pin: { visible: false },
 	                refresh: { visible: false },

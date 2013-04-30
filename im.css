@@ -349,3 +349,7 @@ div.footer-conversation-bar{
 .chat-add-contact span{
 	font-weight: bold;
 }
+
+.add-contact-dialog input{
+	width: 95%;
+}
