@@ -264,6 +264,18 @@ div.chat-title .chat-status:hover{
 	background-image: url("images/emoticon_unhappy.png");
 }
 
+.context-menu-item.icon-block{
+	background-image: url("images/stop.png");
+}
+
+.context-menu-item.icon-delete{
+	background-image: url("images/delete.png");
+}
+
+.context-menu-item.icon-edit{
+	background-image: url("images/pencil.png");
+}
+
 .emotion.surprised{
 	background-image: url("images/emoticon_surprised.png");
 }

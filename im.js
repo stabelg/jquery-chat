@@ -87,7 +87,7 @@
 
   		prepare($container, user);
 
-		var $container_list = $container.find("ul").addClass(settings.chatListClass);
+		var $container_list = $container.find("ul:first").addClass(settings.chatListClass);
 
 		generateContacts($container_list);
 
@@ -128,13 +128,13 @@
 	        className: 'chat-contact-context-menu',
 	        autoHide: true,
 	        items: {
-	            "block": {name: "Block", icon: settings.onlineClass, callback: function(key, opt){ 
+	            "block": {name: "Block", icon: "block", callback: function(key, opt){ 
 	            	//contacts[$(this).attr('id')] = user data
 	            }},
-	            "update": {name: "Update", icon: settings.onlineClass, callback: function(key, opt){ 
+	            "update": {name: "Update", icon: "edit", callback: function(key, opt){ 
 	            	//contacts[$(this).attr('id')] = user data
 	            }},
-	            "delete": {name: "Delete", icon: settings.onlineClass, callback: function(key, opt){ 
+	            "delete": {name: "Delete", icon: "delete", callback: function(key, opt){ 
 	            	$.xmpp.deleteContact({to:contacts[$(this).attr('id')]['jid']});
 	            	$(this).remove();
 	            }}
@@ -487,11 +487,22 @@
 			.html("Contact list")
 			.appendTo(container);
 
+			var search_box = $("<input/>")
+			.addClass("chat-search-input")
+			.attr("placeholder", "Type your search")
+			.keydown(function(e){
+				if(e.which == $.ui.keyCode.ENTER && !e.shiftKey){
+					$(this).parent().find("ul").toggle();
+				}
+			});
+
 			$("<div/>")
 			.addClass("chat-list")
 			.addClass(settings.chatClass)
 			.addClass(settings.loadClass)
+			.append()
 			.append("<ul/>")
+			.append("<ul class='chat-search-result' style='display:none;'/>")
 			.appendTo(container);
 
 			if (!settings.minimizeZone) {
