@@ -771,6 +771,7 @@
 	  			e.preventDefault();
 	  			$.xmpp.connect(connection_options);
 	  		}
+	  		$container.unblock();
 	  		reconnectButton.removeClass(statusClasses).removeClass("chat-status loading-chat").addClass("retry").click(reconnect);
 	  		$(".chat-conversation-dialog textarea").attr("disabled", "disabled");
 	  	}
