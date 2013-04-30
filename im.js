@@ -129,10 +129,14 @@
 	        autoHide: true,
 	        items: {
 	            "block": {name: "Block", icon: settings.onlineClass, callback: function(key, opt){ 
-	            	$(opt.selector).removeClass(statusClasses).addClass(settings.onlineClass); 
+	            	//contacts[$(this).attr('id')] = user data
+	            }},
+	            "update": {name: "Update", icon: settings.onlineClass, callback: function(key, opt){ 
+	            	//contacts[$(this).attr('id')] = user data
 	            }},
 	            "delete": {name: "Delete", icon: settings.onlineClass, callback: function(key, opt){ 
-	            	$(opt.selector).removeClass(statusClasses).addClass(settings.onlineClass); 
+	            	$.xmpp.deleteContact({to:contacts[$(this).attr('id')]['jid']});
+	            	$(this).remove();
 	            }}
 	        }
 	    });
@@ -194,7 +198,7 @@
 					var id = MD5.hexdigest(from);
 					var conversation = $("#"+id+"_chat");
 					if(conversation.length == 0){
-						conversation = openChat({title: contacts[id], from:from, id: id+"_chat", md5_id:id});
+						conversation = openChat({title: contacts[id]['from'], from:from, id: id+"_chat", md5_id:id});
 						conversation.parent().find(".ui-dialog-titlebar").prepend($("#"+id).find(".chat-status").clone().removeClass("chatting"));
 					}else{
 						conversation.wijdialog("open");
@@ -218,7 +222,7 @@
 					var conversation = $("#"+id+"_chat");
 					if(message.body){
 						if(conversation.length == 0){
-							conversation = openChat({title: (contacts[id] ? contacts[id]:message.from) , from:message.from, id: id+"_chat", md5_id:id});
+							conversation = openChat({title: (contacts[id] ? contacts[id]['from']:message.from) , from:message.from, id: id+"_chat", md5_id:id});
 							conversation.parent().find(".ui-dialog-titlebar").prepend($("#"+id).find(".chat-status").clone().removeClass("chatting"));
 						}else{
 							conversation.wijdialog("open");
@@ -230,7 +234,7 @@
 					if(message.body){
 						$("<div/>")
 						.addClass("chat-conversation-box-you")
-						.html(date+"<strong> "+(contacts[id] ? contacts[id]:message.from)+": </strong>"+formatters(message.body))
+						.html(date+"<strong> "+(contacts[id] ? contacts[id]['from']:message.from)+": </strong>"+formatters(message.body))
 						.appendTo(conversation_box);
 						conversation_box.scrollTo("div:last").next().html("");
 						conversation.parent().find(".ui-dialog-titlebar").addClass("new");
@@ -319,13 +323,13 @@
 								conversation_box.html("").html("<span class='read-icon'></span>Seen "+date);
 								break;
 							case 'composing':
-								conversation_box.html("").html("<span class='composing'></span>"+contacts[id]+" is typing...");
+								conversation_box.html("").html("<span class='composing'></span>"+contacts[id]['from']+" is typing...");
 								break;
 							case 'gone':
 								conversation_box.html("").html("<span class='active'></span>Gone "+date);
 								break;
 							case 'paused':
-								conversation_box.html("").html("<span class='paused'></span>"+contacts[id]+" stopped typing...");
+								conversation_box.html("").html("<span class='paused'></span>"+contacts[id]['from']+" stopped typing...");
 								break;
 							default:
 								conversation_box.html("");
@@ -345,36 +349,40 @@
 					var from = roster['name'] ? roster['name'] : roster.jid;
 
 					if(roster.subscription == "from" || roster.subscription == "subscribe"){
-						noty({
-							text: 'The '+from+' wants to see when you are online',
-							layout: 'topRight',
-							type: 'confirm',
-							buttons: [
-							    {addClass: 'btn btn-primary', text: 'Ok', onClick: function($noty) {
-							        // this = button element
-							        // $noty = $noty element subscribed
-							        $.xmpp.subscription({to:roster.jid, type:'subscribed'});
-							        $noty.close();
-							        noty({text: from+' was accepted', type: 'success',layout: 'topRight'});
-							      }
-							    },
-							    {addClass: 'btn btn-danger', text: 'Cancel', onClick: function($noty) {
-							    	//unsubscribed
-							    	$.xmpp.subscription({to:roster.jid, type:'unsubscribed'});
-							        $noty.close();
-							        noty({text: from+' will not see you online', type: 'error',layout: 'topRight'});
-							      }
-							    }
-						 	]	
-						});
+						if(!$('#'+md5_contact+'_noty').length){
+							noty({
+								text: 'The '+from+' wants to see when you are online',
+								layout: 'topRight',
+								type: 'confirm',
+								template: '<div id="'+md5_contact+'_noty" class="noty_message"><span class="noty_text"></span><div class="noty_close"></div></div>',
+								buttons: [
+								    {addClass: 'btn btn-primary', text: 'Ok', onClick: function($noty) {
+								        // this = button element
+								        // $noty = $noty element subscribed
+								        $.xmpp.subscription({to:roster.jid, type:'subscribed'});
+								        $noty.close();
+								        noty({text: from+' was accepted', type: 'success',layout: 'topRight'});
+								      }
+								    },
+								    {addClass: 'btn btn-danger', text: 'Cancel', onClick: function($noty) {
+								    	//unsubscribed
+								    	$.xmpp.subscription({to:roster.jid, type:'unsubscribed'});
+								        $noty.close();
+								        noty({text: from+' will not see you online', type: 'error',layout: 'topRight'});
+								      }
+								    }
+							 	]	
+							});
+						}
 					}
 
-					contacts[md5_contact] = from;
+					contacts[md5_contact] = roster;
+					contacts[md5_contact]['from'] = from;
 
 					if(!select.length){
 						//select.find(".chat-contact-name").html(from);
 	   					var contact = $("<li/>")
-						.attr("title", "Clique para iniciar uma conversa com "+from)
+						.attr("title", "Click to start a conversation with "+from)
 						.attr("id", md5_contact)
 						.addClass(settings.contactClass);
 						
@@ -548,6 +556,7 @@
 							data['type'] = "subscribe";
 							$.xmpp.addContact(data);
 							$.xmpp.subscription(data);
+							$(this).wijdialog("close");
 						}
 					},
 					{
@@ -582,7 +591,7 @@
 
 			if(!select.length){
 				var contact = $("<li/>")
-				.attr("title", "Clique para iniciar uma conversa com "+from)
+				.attr("title", "Click to start a conversation with "+from)
 				.attr("id", md5_contact)
 				.addClass(settings.contactClass)
 				
@@ -645,7 +654,7 @@
 	  					if(settings.debug)
 							debug("Sending message: "+message+"\nfrom: "+options.from);
 	  					$.xmpp.sendMessage({body: message, to:options.from, resource:"Chat", otherAttr:"value"},
-	   						"<error>Ocorreu um erro ao enviar esta mensagem</error>");
+	   						"<error>An error has ocurred</error>");
 
 	  					var conversation_box = div.find(".chat-conversation-box");
 						var date = "<span style='font-size:9px;'>("+(new Date().toString("HH:mm"))+")</span>";

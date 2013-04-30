@@ -58,8 +58,21 @@ div.chat-conversation-dialog.ui-dialog{
 
 .chat-conversation-dialog .ui-dialog-titlebar.ui-widget-header{
 	background-image: none;
-	width: 92%;
 	border-radius: 0;
+}
+
+div.chat-conversation-dialog .ui-dialog-title{
+	width: 63%;
+	margin: .1em 0;
+	white-space: nowrap;
+	text-align: left;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.footer-conversation-bar .chat-conversation-dialog .ui-dialog-title{
+	width: 53%;
+	text-align: left;
 }
 
 div.chat-conversation-dialog.ui-dialog div.chat-conversation.ui-dialog-content.ui-widget-content{
@@ -112,7 +125,7 @@ div.chat-title .chat-add{
 	min-width: 12px;
 	display: inline-block;
 	position: absolute;
-	right: 10%;
+	right: 20px;
 	top: 7%;
 	padding-right: 5px;
 	background-image: url(images/add.png);	
@@ -171,7 +184,7 @@ div.chat-title .chat-status:hover{
 	display: inline-block;
 	position: absolute;
 	right: 0;
-	top: 15%;
+	top: 7%;
 	padding-right: 5px;
 }
 
@@ -202,7 +215,7 @@ div.chat-title .chat-status:hover{
 }
 
 .chat-status.chatting,.chat-contact .chat-status.chatting{
-	background-image: url(images/comment_yellow.gif);	
+	background-image: url(images/comment.gif);	
 }
 
 .new{
@@ -305,4 +318,34 @@ div.footer-conversation-bar{
 .chat-contact-description{
 	font-size: 11px;
 	color: #9F9F9F;
+}
+
+.chat-description-input[readonly="readonly"], .chat-description-input[readonly]{
+	background: #4297d7;
+	border-color: #4297d7;
+	color: white;
+}
+
+.chat-description-input::-webkit-input-placeholder {
+   color: white;
+}
+
+.chat-description-input:-moz-placeholder { /* Firefox 18- */
+   color: white;  
+}
+
+.chat-description-input::-moz-placeholder{  /* Firefox 19+ */
+   color: white;  
+}
+
+.chat-description-input:-ms-input-placeholder {  
+   color: white;  
+}
+
+.chat-add-contact input{
+	font-weight: bold;
+}
+
+.chat-add-contact span{
+	font-weight: bold;
 }
