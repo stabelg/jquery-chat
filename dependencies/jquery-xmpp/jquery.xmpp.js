@@ -476,47 +476,45 @@
         /**
         * Wait for a new event
         */
-        listen: function(){
+        listen: function()
+        {
             var xmpp = this;
-            if(!this.listening){
-                this.listening = true;
-                xmpp = this;
-                if(xmpp.connections === 0) {
-                    //To detect networks problems
-                    clearTimeout(xmpp._jsTimeout);
-                    xmpp._jsTimeout = setTimeout(xmpp.__networkError,xmpp._timeoutMilis);
-                    //
-                    this.rid = this.rid+1;
+            
+            if( !this.listening )
+            {
+                xmpp.listening = true;
+                
+                if( xmpp.connections == 0 && ( xmpp.sid != null && xmpp.rid != null ) )
+                {
+                    xmpp.rid = xmpp.rid + 1;
                     xmpp.connections = xmpp.connections + 1;
-                    xmpp.__lastAjaxRequest = $.ajax({
-                      type: "POST",
-                      url: this.url,
-                      data: "<body rid='"+this.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+this.sid+"'></body>",
-                      success: function(data){
-                            xmpp.connections = xmpp.connections - 1;
-                            //console.log( "Connections : " + xmpp.connections );
-                            xmpp.listening = false;
+                    xmpp.__lastAjaxRequest = $.ajax(
+                    {
+                      type  : "POST",
+                      url   : xmpp.url,
+                      data  : "<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'></body>",
+                      success : function(data)
+                      {
+                            xmpp.connections    = xmpp.connections - 1;
+                            xmpp.listening      = false;
+
                             var body = $(xmpp.fixBody(data));
-                            //When timeout the connections are 0
-                            //When listener is aborted because you send message (or something)
-                            // the body children are 0 but connections are > 0
-                            if(body.children().length > 0) {
+
+                            if( body.children().length > 0 )
+                            { 
                                 xmpp.messageHandler(data);
                             }
                             
-                            // if ( xmpp.connections === 0 ) {
-                                xmpp.listen();
-                            // }
+                            xmpp.listen();
                       },
-                      error: function(XMLHttpRequest, textStatus, errorThrown) {
-                            if(xmpp.onError != null){
-                                xmpp.onError({error: errorThrown, data:textStatus});
-                            }
+                      error : function(XMLHttpRequest, textStatus, errorThrown)
+                      {
+                            xmpp.onError({"error": errorThrown, "data":textStatus});
                       },
                       dataType: 'text'
                     });
                 }
-            }
+            }        
         },
 
         /**
@@ -643,11 +641,85 @@
         },
         
         /**
+        * Add Contact
+        * @params object { to, name, group }
+        * @create - Celepar / Prognus
+        **/
+        addContact: function( contact )
+        {
+            if( $.trim(this.jid) != $.trim(contact.to) )
+            {
+                var msg =   "<iq from='"+this.jid+"/"+this.resource+"' type='set' id='set1'>";
+                msg +=      "<query xmlns='jabber:iq:roster'>";
+                msg +=      "<item jid='"+contact.to+"' name='"+contact.name+"'>";
+                
+                // if exist Group   
+                if( $.trim(contact.group) != "" && contact.group != null )    
+                {
+                    msg += "<group>"+contact.group+"</group>";
+                }
+
+                msg +=  "</item></query>";
+                msg +=  "</iq>";
+
+                this.sendCommand(msg);
+            }
+        },
+
+        /**
+        * Delete Contact
+        * @params object { to }
+        * @create - Celepar / Prognus
+        **/
+        deleteContact: function( contact )
+        {
+            var msg =   "<iq from='"+this.jid+"' id='delete' type='set'>" +
+                            "<query xmlns='jabber:iq:roster'>" +
+                                "<item jid='"+contact.to+"' subscription='remove'/>" +
+                            "</query>" +
+                        "</iq>";
+            
+            this.sendCommand( msg );
+        },
+
+        /**
+        * Update Contact
+        * @params object { jid, name, subscription, group }
+        * @create - Celepar / Prognus
+        **/
+        updateContact: function( contact )
+        {
+            var msg = "<iq from='"+this.jid+"' type='set' id='updateContact'>" +
+                            "<query xmlns='jabber:iq:roster'>" +
+                                "<item jid='"+contact.jid+"' name='"+contact.name+"' subscription='"+contact.subscription+"'>" +
+                                    "<group>"+contact.group+"</group>"+
+                                "</item>" +
+                            "</query>" +
+                        "</iq>";
+            
+            this.sendCommand( msg );
+        },
+
+        /**
+        * Subscription Contact
+        * @params object { to , type }
+        * @create - Celepar / Prognus
+        **/
+        subscription: function( contact )
+        {
+            if( this.jid != $.trim(contact.to) )
+            {    
+                var msg   = "<presence from='"+this.jid+"' to='"+contact.to+"' type='"+contact.type+"'></presence>";
+
+                this.sendCommand( msg );
+            }
+        },
+
+        /**
         * Typing the message
         * @params object { isWriting : "value"}
         * @modified - Celepar / Prognus            
         */
-
         isWriting: function(options)
         {
             var msg = "";
@@ -695,12 +767,12 @@
                 self.messageHandler(data,self)
             });
         },
-        
+
         messageHandler: function( data, context )
         {
             var xmpp        = this;
             var response    = $(xmpp.fixBody(data));
-        
+
             $.each(response.find("message"),function(i,element)
             {
                 try
@@ -775,15 +847,28 @@
                 {
                     var e = $(element);
 
-                    xmpp.onRoster(
-                    {
-                        "ask"           : e.attr("ask"),
-                        "jid"           : e.attr("jid"),
-                        "name"          : e.attr("name"),
-                        "subscription"  : e.attr("subscription"),
-                        "show"          : "unavailable",
-                        "group"         : ($.trim($(this).find("group").html()) ) ? $(this).find("group").html() : ""
-                    });
+                    if( $.trim(e.attr('subscription') ) != "remove" )
+                    {    
+                        var _show = "unavailable";
+
+                        if( response.find("iq").attr("type") == "set" )
+                        {
+                            if( e.attr('subscription') != "none" )
+                            {
+                                _show = "available";
+                            }
+                        }
+
+                        xmpp.onRoster(
+                        {
+                            "ask"           : e.attr("ask"),
+                            "jid"           : e.attr("jid"),
+                            "name"          : e.attr("name"),
+                            "subscription"  : e.attr("subscription"),
+                            "show"          : _show,
+                            "group"         : ($.trim($(this).find("group").html()) ) ? $(this).find("group").html() : ""
+                        });
+                    }
 
                 }catch(e){}
             });
@@ -792,36 +877,29 @@
             {
                 try
                 {
-                    if( $(element).find("query") )
+                    var e = $(element);
+
+                    if( e.find("query") && $.trim(e.find("query").attr("xmlns")) == "jabber:iq:roster" )
                     {
-                        var e = $(element);
-
-                        switch( e.find("query").attr("xmlns") )
+                        e.find("item").each(function()
                         {
-                            case "jabber:iq:roster" : 
-
-                                e.find("item").each(function()
+                            if( $.trim(e.attr('subscription') ) != "remove" )
+                            {    
+                                xmpp.onRoster(
                                 {
-                                    xmpp.onRoster(
-                                    {
-                                        "jid"           : e.attr("jid"),
-                                        "name"          : e.attr("name"),
-                                        "subscription"  : e.attr("subscription"),
-                                        "group"         : ($.trim($(this).find("group").html()) ) ? $(this).find("group").html() : ""
-                                    });
+                                    "jid"           : e.attr("jid"),
+                                    "name"          : e.attr("name"),
+                                    "subscription"  : e.attr("subscription"),
+                                    "group"         : ($.trim($(this).find("group").html()) ) ? $(this).find("group").html() : ""
                                 });
-
-                                break;
-
-                            case "http://jabber.org/protocol/disco#info" :
-                                //console.log( "Disco#info : " + e.html() );
-                                break;
-
-                            default: 
-                                console.log( "Default : " +  e.html() );
-
-                        }
+                            }
+                        });
                     }
+                    else
+                    {
+                        xmpp.onIq( e );
+                    }
+
                 }catch(e){}
             });
 
@@ -829,13 +907,42 @@
             {
                 try
                 {   
-                    xmpp.onPresence(
+                    var e = $(element);
+
+                    // New Contacts
+                    if( e.attr('type') && $.trim(e.attr('type')) != "unavailable" )
                     {
-                        "from"      : $(element).attr("from"),
-                        "to"        : $(element).attr("to"),
-                        "show"      : ($(element).find("show").html() ) ? $(element).find("show").html() : ( $(element).attr("type") ? $(element).attr("type") : "available"),
-                        "status"    : $(element).find("status").html()
-                    });
+                        xmpp.onRoster(
+                        {
+                            "jid"           : e.attr("from"),
+                            "name"          : "",
+                            "show"          : e.attr("type"),
+                            "subscription"  : ( $.trim(e.attr("type") ) === "subscribed" ) ? "both" : e.attr("type"),
+                            "group"         : ""
+                        });
+
+                        // Presence automatic
+                        if( $.trim(e.attr('type')) == "subscribe" )
+                        {    
+                            xmpp.subscription({"to": e.attr("from") , "type": "subscribed"});
+                        }
+
+                        // Presence automatic
+                        if( $.trim(e.attr('type')) == "subscribed" )
+                        {    
+                            xmpp.subscription({"to": e.attr("from") , "type": "subscribe"});
+                        }
+                    }
+                    else
+                    {    
+                        xmpp.onPresence(
+                        {
+                            "from"      : e.attr("from"),
+                            "to"        : e.attr("to"),
+                            "show"      : (e.find("show").html() ) ? e.find("show").html() : ( e.attr("type") ? e.attr("type") : "available"),
+                            "status"    : e.find("status").html()
+                        });
+                    }
                     
                 }catch(e){}
             });
