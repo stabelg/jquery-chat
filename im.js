@@ -88,6 +88,7 @@
   		prepare($container, user);
 
 		var $container_list = $container.find("ul:first").addClass(settings.chatListClass);
+		var alfabetic = function(){};
 
 		generateContacts($container_list);
 
@@ -167,10 +168,7 @@
 
 					$.xmpp.getRoster();
 					$.xmpp.setPresence(settings.defaultStatus);
-					//console.log($.xmpp.getMyPresence());
-
-					$container.find("."+settings.loadClass).removeClass(settings.loadClass);
-					
+					$container.find("."+settings.loadClass).removeClass(settings.loadClass);					
 
 					var statusClass = 
 						settings.defaultStatus ? 
@@ -270,11 +268,11 @@
 					var from = presence.from.split("@")[0];
 					var dialogs = $("#"+md5_contact+"_chat");
 					if(select.length){
-						select = select.detach();
+						/*select = select.detach();
 
 						var onlines = $container_list.find("."+settings.onlineClass+":last");
 						var busys = $container_list.find("."+settings.busyClass+":last");
-						var aways = $container_list.find("."+settings.awayClass+":last");
+						var aways = $container_list.find("."+settings.awayClass+":last");*/
 
 						select.find('.chat-contact-description')
 						.html(presence['status'] ? " ("+presence['status']+")" : "");
@@ -283,7 +281,7 @@
 						.removeClass(statusClasses)
 						.addClass(statusClass);
 						
-						if(statusClass == settings.onlineClass){
+						/*if(statusClass == settings.onlineClass){
 							$container_list.prepend(select);
 						}else if(statusClass == settings.busyClass){
 							onlines.length ? onlines.parent().after(select) : $container_list.prepend(select);
@@ -292,7 +290,16 @@
 								( onlines.length ?  onlines.parent().after(select) : $container_list.prepend(select)) ;
 						}else{
 							$container_list.append(select);
-						}
+						}*/
+						clearTimeout(alfabetic);
+						alfabetic = setTimeout(function(){
+							$container_list.find("li").tsort("."+settings.onlineClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
+							$container_list.find("li").tsort("."+settings.busyClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
+							$container_list.find("li").tsort("."+settings.awayClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
+							$container_list.find("li").tsort("."+settings.offlineClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
+							$container.unblock();
+						},1000);
+						
 
 						if(dialogs.length){
 							$("#"+md5_contact).addClass("chatting");
@@ -430,6 +437,10 @@
 	  	function prepare(container, user){
 	  		if(settings.debug)
 					debug("Preparing");
+
+			container.block({ 
+                message: '<h3>Please Wait</h3>'
+            });
 
 			var div = $("<div/>")
 			.addClass("chat-title chat-me")
@@ -655,7 +666,7 @@
 	  			.appendTo(div)
 	  			.keydown(function(e){
 	  				//set a timer
-	  				$(this).parents(".chat-conversation-dialog").parent().find(".ui-dialog-titlebar").removeClass("new");
+	  				$(this).parents(".ui-dialog").find(".ui-dialog-titlebar").removeClass("new");
 	  				if(composingTimeOut){
 	  					$.xmpp.isWriting({isWriting : 'composing', to:options.from});
 	  					composingTimeOut = false;
@@ -754,6 +765,9 @@
 	  		containerList.empty();
 	  		var reconnect = function(e){
 	  			reconnectButton.unbind('click', reconnect).addClass("chat-status loading-chat");
+	  			$container.block({ 
+	                message: '<h3>Please Wait</h3>'
+	            });
 	  			e.preventDefault();
 	  			$.xmpp.connect(connection_options);
 	  		}
