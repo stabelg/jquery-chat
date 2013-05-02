@@ -268,39 +268,12 @@
 					var from = presence.from.split("@")[0];
 					var dialogs = $("#"+md5_contact+"_chat");
 					if(select.length){
-						/*select = select.detach();
-
-						var onlines = $container_list.find("."+settings.onlineClass+":last");
-						var busys = $container_list.find("."+settings.busyClass+":last");
-						var aways = $container_list.find("."+settings.awayClass+":last");*/
-
 						select.find('.chat-contact-description')
 						.html(presence['status'] ? " ("+presence['status']+")" : "");
 
 						select.find("div.chat-status")
 						.removeClass(statusClasses)
 						.addClass(statusClass);
-						
-						/*if(statusClass == settings.onlineClass){
-							$container_list.prepend(select);
-						}else if(statusClass == settings.busyClass){
-							onlines.length ? onlines.parent().after(select) : $container_list.prepend(select);
-						}else if(statusClass == settings.awayClass){
-							busys.length ? busys.parent().after(select) : 
-								( onlines.length ?  onlines.parent().after(select) : $container_list.prepend(select)) ;
-						}else{
-							$container_list.append(select);
-						}*/
-						clearTimeout(alfabetic);
-						alfabetic = setTimeout(function(){
-							$container_list.find("li").tsort("."+settings.onlineClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
-							$container_list.find("li").tsort("."+settings.busyClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
-							$container_list.find("li").tsort("."+settings.awayClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
-							$container_list.find("li").tsort("."+settings.offlineClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
-							$container.unblock();
-						},1000);
-						
-
 						if(dialogs.length){
 							$("#"+md5_contact).addClass("chatting");
 							dialogs.parent().find("div.chat-status")
@@ -308,6 +281,14 @@
 							.addClass(statusClass);
 						}
 					}
+					clearTimeout(alfabetic);
+					alfabetic = setTimeout(function(){
+						$container_list.find("li").tsort("."+settings.onlineClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
+						$container_list.find("li").tsort("."+settings.busyClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
+						$container_list.find("li").tsort("."+settings.awayClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
+						$container_list.find("li").tsort("."+settings.offlineClass, "span.chat-contact-name",{charOrder:"a[באגה]c[ח]e[יטךכ]i[םלמן]o[ףעפצ]u[תשûü]"});
+						$container.unblock();
+					},1000);
 				},
 				onError: function(error){
 					if(settings.debug)
@@ -355,7 +336,7 @@
 					var select = $("#"+md5_contact);
 					var from = roster['name'] ? roster['name'] : roster.jid;
 
-					if(roster.subscription == "from" || roster.subscription == "subscribe"){
+					if(roster.subscription == "from" || roster.subscription == "subscribe" || roster.subscription == "to"){
 						if(!$('#'+md5_contact+'_noty').length){
 							noty({
 								text: 'The '+from+' wants to see when you are online',
