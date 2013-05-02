@@ -134,6 +134,7 @@
 	            }},
 	            "update": {name: "Update", icon: "edit", callback: function(key, opt){ 
 	            	//contacts[$(this).attr('id')] = user data
+	            	addContact(null, contacts[$(this).attr('id')],$(this));
 	            }},
 	            "delete": {name: "Delete", icon: "delete", callback: function(key, opt){ 
 	            	$.xmpp.deleteContact({to:contacts[$(this).attr('id')]['jid']});
@@ -508,10 +509,17 @@
 					debug("Prepared");
 	  	}
 
-	  	function addContact(){
+	  	function addContact(e, data, select){
 	  		if(!$.xmpp.isConnected())
 	  			return false;
-	  		var offset = $(this).offset();
+	  		//MD5.hexdigest
+	  		var offset;
+	  		if(!select){
+	  			offset = $(this).offset();
+	  		}else{
+	  			offset = $(select).offset()
+	  		}
+	  		
 			var div = $("<div/>")
 			.addClass("chat-add-contact");
 
@@ -521,7 +529,8 @@
 
 			$("<input type='text'>")
 			.attr({name: 'name', placeholder: 'Enter a name'})
-			.appendTo(div);
+			.appendTo(div)
+			.val(data ? data.name : "");
 
 			$("<br/>")
 			.appendTo(div);
@@ -530,15 +539,22 @@
 			.html("E-mail: ")
 			.appendTo(div);
 
+			var emailAttrs = {name: 'to', placeholder: 'Enter a valid e-mail'};
+			if(data){
+				emailAttrs['disabled'] = "disabled";
+			}
+
 			$("<input type='text'>")
-			.attr({name: 'to', placeholder: 'Enter a valid e-mail'})
-			.appendTo(div);
+			.attr(emailAttrs)
+			.appendTo(div)
+			.val(data ? data.jid : "");
 
 			$(div).find("input").wijtextbox();
 
+			var _data = data;
 			div.wijdialog({
 				autoOpen: true,
-				title: 'Add Contact',
+				title: data ? 'Edit Contact' : 'Add Contact',
 				draggable: false,
 				dialogClass: "add-contact-dialog",
 				captionButtons: {
@@ -552,16 +568,21 @@
 				position: [offset.left,offset.top],
 				buttons: [
 					{
-						text:"Add", 
+						text: data ? "Edit" : "Add", 
 						click: function(){
-							var data = {};
-							$.each($(this).find("input"), function(e, q){
-								data[$(q).attr("name")] = $(q).val();
-							});
-							data['type'] = "subscribe";
-							$.xmpp.addContact(data);
-							$.xmpp.subscription(data);
-							$(this).wijdialog("close");
+							if(!_data){
+								var data = {};
+								$.each($(this).find("input"), function(e, q){
+									data[$(q).attr("name")] = $(q).val();
+								});
+								data['type'] = "subscribe";
+								$.xmpp.addContact(data);
+								$.xmpp.subscription(data);
+							}else{
+								_data = $.extend( {}, _data, {name: $(this).find("input:first").val()} );
+								$.xmpp.updateContact(_data);
+							}
+							$(this).wijdialog("close");	
 						}
 					},
 					{
