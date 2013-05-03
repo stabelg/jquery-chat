@@ -129,7 +129,7 @@
 	        className: 'chat-contact-context-menu',
 	        autoHide: true,
 	        items: {
-	            "authorize": {name: "Authorize", icon: "block", callback: function(key, opt){ 
+	            "authorize": {name: "Authorize", icon: "question", callback: function(key, opt){ 
 	            	//contacts[$(this).attr('id')] = user data
 	            	authorize(contacts[$(this).attr('id')], null);
 	            }},
@@ -368,36 +368,6 @@
    					var md5_contact = MD5.hexdigest(roster.jid);
 					var select = $("#"+md5_contact);
 					var from = roster['name'] ? roster['name'] : roster.jid;
-
-					/*if(roster.subscription == "from" || roster.subscription == "subscribe"){
-						if(!$('#'+md5_contact+'_noty').length){
-							noty({
-								text: 'The '+from+' wants to see when you are online',
-								layout: 'topRight',
-								type: 'confirm',
-								template: '<div id="'+md5_contact+'_noty" class="noty_message"><span class="noty_text"></span><div class="noty_close"></div></div>',
-								buttons: [
-								    {addClass: 'btn btn-primary', text: 'Ok', onClick: function($noty) {
-								        // this = button element
-								        // $noty = $noty element subscribed
-								        $.xmpp.subscription({to:roster.jid, type:'subscribed'});
-								        $noty.close();
-								        noty({text: from+' was accepted', type: 'success',layout: 'topRight'});
-								      }
-								    },
-								    {addClass: 'btn btn-danger', text: 'Cancel', onClick: function($noty) {
-								    	//unsubscribed
-								    	$.xmpp.subscription({to:roster.jid, type:'unsubscribed'});
-								        $noty.close();
-								        noty({text: from+' will not see you online', type: 'error',layout: 'topRight'});
-								      }
-								    }
-							 	]	
-							});
-						}
-					}else if(roster.subscription == "to"){
-						$.xmpp.subscription({to:roster.jid, type:'subscribed'});
-					}*/
 
 					contacts[md5_contact] = roster;
 					contacts[md5_contact]['from'] = from;
