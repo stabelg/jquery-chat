@@ -21,44 +21,44 @@
 
 (function($) {
 
-	// Intercept XHRs coming from IE8+ and send via XDomainRequest.
-	$.ajaxTransport("+*", function( options, originalOptions, jqXHR ) {
+    // Intercept XHRs coming from IE8+ and send via XDomainRequest.
+    $.ajaxTransport("+*", function( options, originalOptions, jqXHR ) {
     
-		// If this is IE and XDomainRequest is supported.
-		if(navigator.appVersion.indexOf("MSIE") != -1 && window.XDomainRequest) {
+        // If this is IE and XDomainRequest is supported.
+        if(navigator.appVersion.indexOf("MSIE") != -1 && window.XDomainRequest) {
         
-			var xdr;
+            var xdr;
         
-			return {
+            return {
             
-				send: function( headers, completeCallback ) {
+                send: function( headers, completeCallback ) {
 
-					// Use Microsoft XDR
-					xdr = new XDomainRequest();
+                    // Use Microsoft XDR
+                    xdr = new XDomainRequest();
                 
-					// Open the remote URL.
-					xdr.open("post", options.url);
+                    // Open the remote URL.
+                    xdr.open("post", options.url);
                 
-					xdr.onload = function() {               
-						completeCallback(200, "success", [this.responseText]);  
-					};
+                    xdr.onload = function() {               
+                        completeCallback(200, "success", [this.responseText]);  
+                    };
                 
-					xdr.ontimeout = function(){
-						completeCallback(408, "error", ["The request timed out."]);
-					};
+                    xdr.ontimeout = function(){
+                        completeCallback(408, "error", ["The request timed out."]);
+                    };
                 
-					xdr.onerror = function(errorText){
-						completeCallback(404, "error: " + errorText, ["The requested resource could not be found."]);
-					};
+                    xdr.onerror = function(errorText){
+                        completeCallback(404, "error: " + errorText, ["The requested resource could not be found."]);
+                    };
                 
-					// Submit the data to the site.
-					xdr.send(options.data);
-				},
-				abort: function() {
-					if(xdr)xdr.abort();
-				}
-			};
-		}
+                    // Submit the data to the site.
+                    xdr.send(options.data);
+                },
+                abort: function() {
+                    if(xdr)xdr.abort();
+                }
+            };
+        }
     });
 
     $.xmpp ={
@@ -100,12 +100,11 @@
         * onPresence: function(presence){}
         * onError: function(error, data){}
         * }
-        */
+        **/
         connect: function(options){
             this.rid = Math.round(Math.random()*Math.pow(10,10));
-            this.jid = options.jid;
-            var split = options.jid.split("@");
-            var domain = split[1];
+            this.jid = options.username+"@"+options.domain;
+            var domain = options.domain;
             var xmpp = this;
             if(options.url == null)
                 this.url = '/http-bind'
@@ -177,9 +176,9 @@
         * onPresence: function(presence){}
         * onError: function(error, data){}
         * }
-        */
+        **/
         attach: function(options){
-            this.jid = options.jid;
+            this.jid = options.username+"@"+options.domain;
             this.sid = options.sid;
             this.rid = options.rid;
 
@@ -219,9 +218,9 @@
         },
         
         /**
-        * Disconnect from the server using synchronous Ajax
-        * @params function callback
-        */
+         * Disconnect from the server using synchronous Ajax
+         * @params function callback
+         **/
         disconnectSync: function(callback){
             var xmpp = this;
             xmpp.rid = xmpp.rid + 1;
@@ -251,9 +250,9 @@
         },
         
         /**
-        * Disconnect from the server
-        * @params function callback
-        */
+         * Disconnect from the server
+         * @params function callback
+         **/
         disconnect: function(callback){
             var xmpp = this;
             xmpp.rid = xmpp.rid + 1;
@@ -278,8 +277,8 @@
             }, 'text');
         },
         /**
-        * Do a MD5 Digest authentication
-        */
+         * Do a MD5 Digest authentication
+         **/
         loginDigestMD5: function(options){
             var xmpp = this;
             this.rid++;
@@ -287,9 +286,8 @@
             $.post(this.url,msg,function(data){
                 var response = $(data);
 
-                var split = options.jid.split("@");
-                var domain = split[1];
-                var username = split[0];
+                var domain = options.domain;
+                var username = options.username;
 
                 //Code bases on Strophe
                 var attribMatch = /([a-z]+)=("[^"]+"|[^,"]+)(?:,|$)/;
@@ -390,72 +388,141 @@
         },
 
         /**
-            * Returns the quoted string
-            * @prams string
-            * @return quoted string
-            */
+         * Returns the quoted string
+         * @prams string
+         * @return quoted string
+         **/
         _quote: function(string){
                 return '"'+string+'"';
         },
+
         /**
-        * Do a plain authentication
-        */
-        loginPlain: function(options)
+         * Do a plain authentication PHP
+         **/
+        loginPlainPHP: function(options)
         {
             this.rid++;
-            var split   = options.jid.split("@");
-            var user    = split[0];
-            var domain  = split[1];
+            var domain  = options.domain;
             var xmpp    = this;
-            var text    = "<body rid='"+this.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+this.sid+"'><auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>"+Base64.encode(this.jid+"\u0000"+user+"\u0000"+options.password)+"</auth></body>";
+            var text    = "";
             var url     = this.url;
 
-            $.post(this.url,text,function(data)
+            $.post( "bind.php", url, function(data)
             {
-                var response = $(xmpp.fixBody(data));
+                var auth       = $.trim(data);
+                var php_text   = "<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'><auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>"+auth+"</auth></body>";
 
-                if( response.find("success").length )
+                $.post( xmpp.url, php_text , function(data)
                 {
-                    xmpp.rid++;
-                    text ="<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"' to='"+domain+"' xml:lang='en' xmpp:restart='true' xmlns:xmpp='urn:xmpp:xbosh'/>";
-                    $.post( url, text, function(data)
+                    var response = $(xmpp.fixBody(data));
+
+                    if( response.find("success").length )
                     {
-                        //xmpp.messageHandler(data);
                         xmpp.rid++;
-                        text ="<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'><iq type='set' id='_bind_auth_2' xmlns='jabber:client'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>" + xmpp.resource +"</resource></bind></iq></body>";
+                        text ="<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"' to='"+domain+"' xml:lang='en' xmpp:restart='true' xmlns:xmpp='urn:xmpp:xbosh'/>";
                         $.post( url, text, function(data)
                         {
                             //xmpp.messageHandler(data);
                             xmpp.rid++;
-                            text = "<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'><iq type='set' id='_session_auth_2' xmlns='jabber:client'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq></body>";
-                            $.post(url,text,function(data)
+                            text ="<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'><iq type='set' id='_bind_auth_2' xmlns='jabber:client'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>" + xmpp.resource +"</resource></bind></iq></body>";
+                            $.post( url, text, function(data)
                             {
-                                if(options.onConnect != null)
+                                //xmpp.messageHandler(data);
+                                xmpp.rid++;
+                                text = "<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'><iq type='set' id='_session_auth_2' xmlns='jabber:client'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq></body>";
+                                $.post(url,text,function(data)
                                 {
-                                    xmpp.connected = true;
-                                }
+                                    if(options.onConnect != null)
+                                    {
+                                        xmpp.connected = true;
+                                    }
 
-                                options.onConnect(data);
+                                    options.onConnect(data);
 
-                                xmpp.listen();
+                                    xmpp.listen();
 
+                                }, 'text');
                             }, 'text');
                         }, 'text');
-                    }, 'text');
-                }
-                else
-                {
-                    if(options.onError != null)
-                    {
-                        options.onError({error: "Invalid credentials", data:data});
                     }
-                }
-            }, 'text');
+                    else
+                    {
+                        if(options.onError != null)
+                        {
+                            options.onError({error: "Invalid credentials", data:data});
+                        }
+                    }
+                }, 'text');
+
+
+            },'text');
+        },
+
+        /**
+         * Do a plain authentication Javascript
+         **/
+        loginPlain: function(options)
+        {
+            if((this.jid != null && $.trim(this.jid) != "") && ( options.password != undefined && $.trim(options.password) != ""))
+            {    
+                this.rid++;
+                var user    = options.username;
+                var domain  = options.domain;
+                var xmpp    = this;
+                var text    = "<body rid='"+this.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+this.sid+"'><auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='PLAIN'>"+Base64.encode(this.jid+"\u0000"+user+"\u0000"+options.password)+"</auth></body>";
+                var url     = this.url;
+
+                $.post(this.url,text,function(data)
+                {
+                    var response = $(xmpp.fixBody(data));
+
+                    if( response.find("success").length )
+                    {
+                        xmpp.rid++;
+                        text ="<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"' to='"+domain+"' xml:lang='en' xmpp:restart='true' xmlns:xmpp='urn:xmpp:xbosh'/>";
+                        $.post( url, text, function(data)
+                        {
+                            //xmpp.messageHandler(data);
+                            xmpp.rid++;
+                            text ="<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'><iq type='set' id='_bind_auth_2' xmlns='jabber:client'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>" + xmpp.resource +"</resource></bind></iq></body>";
+                            $.post( url, text, function(data)
+                            {
+                                //xmpp.messageHandler(data);
+                                xmpp.rid++;
+                                text = "<body rid='"+xmpp.rid+"' xmlns='http://jabber.org/protocol/httpbind' sid='"+xmpp.sid+"'><iq type='set' id='_session_auth_2' xmlns='jabber:client'><session xmlns='urn:ietf:params:xml:ns:xmpp-session'/></iq></body>";
+                                $.post(url,text,function(data)
+                                {
+                                    if(options.onConnect != null)
+                                    {
+                                        xmpp.connected = true;
+                                    }
+
+                                    options.onConnect(data);
+
+                                    xmpp.listen();
+
+                                }, 'text');
+                            }, 'text');
+                        }, 'text');
+                    }
+                    else
+                    {
+                        if(options.onError != null)
+                        {
+                            options.onError({error: "Invalid credentials", data:data});
+                        }
+                    }
+                }, 'text');
+            }
+            else
+            {
+                this.loginPlainPHP(options);
+            }
         },
 
         /**
          * Disconnected cause a network problem
-         */
+         **/
          __networkError: function(){
              //Notify the errors and change the state to disconnected
              if($.xmpp.onError != null){
@@ -474,8 +541,8 @@
          },
          
         /**
-        * Wait for a new event
-        */
+         * Wait for a new event
+         **/
         listen: function()
         {
             var xmpp = this;
@@ -518,10 +585,10 @@
         },
 
         /**
-        * Send a raw command
-        * @params String Raw command as plain text
-        * @params callback function callback
-        */
+         * Send a raw command
+         * @params String Raw command as plain text
+         * @params callback function callback
+         **/
         sendCommand: function(rawCommand, callback){
             var self = this;
 
@@ -550,7 +617,7 @@
         *           }
         * @params data: Extra information such errors
         * @params callback: function(){}
-        */
+        **/
         sendMessage: function(options, data, callback){
             var toJid = options.to;
             var body = options.body;
@@ -581,12 +648,12 @@
         },
 
         /**
-        * Change the presence and status
-        * @params object { show : "status_user"}, are: null, away, dnd
-        * @params object { status : "your message here"}, user defined messages
-        * @params callback: function(){}
-        * @modified - Celepar / Prognus
-        */
+         * Change the presence and status
+         * @params object { show : "status_user"}, are: null, away, dnd
+         * @params object { status : "your message here"}, user defined messages
+         * @params callback: function(){}
+         * @modified - Celepar / Prognus
+         **/
         setPresence: function( type, callback )
         {
             var msg = "<presence xmlns='jabber:client'>";
@@ -616,23 +683,23 @@
         },
 
         /**
-        * Get if you are connected
-        */
+         * Get if you are connected
+         **/
         isConnected: function(){
             return this.connected;
         },
 
         /**
-        * Get presence user connected
-        **/
+         * Get presence user connected
+         **/
         getMyPresence : function()
         {
             return this.myPresence;
         },
 
         /**
-        * Get roster request
-        */
+         * Get roster request
+         **/
         getRoster: function( callback )
         {
             var msg = "<iq type='get'><query xmlns='jabber:iq:roster'/></iq>";
@@ -641,10 +708,10 @@
         },
         
         /**
-        * Add Contact
-        * @params object { to, name, group }
-        * @create - Celepar / Prognus
-        **/
+         * Add Contact
+         * @params object { to, name, group }
+         * @create - Celepar / Prognus
+         **/
         addContact: function( contact )
         {
             if( $.trim(this.jid) != $.trim(contact.to) )
@@ -719,7 +786,7 @@
         * Typing the message
         * @params object { isWriting : "value"}
         * @modified - Celepar / Prognus            
-        */
+        **/
         isWriting: function(options)
         {
             var msg = "";
@@ -759,7 +826,7 @@
         /**
         * Get who is online
         * When presence it received the event onPresence is triggered
-        */
+        **/
         getPresence: function(){
             var msg = "<presence/>";
             var self = this;
@@ -949,11 +1016,11 @@
         },
 
         /**
-         * Replaces <body> tags because jquery does not "parse" this tag
-         * @params String
-         * @return String
-         * @modified - Celepar / Prognus            
-         */
+        * Replaces <body> tags because jquery does not "parse" this tag
+        * @params String
+        * @return String
+        * @modified - Celepar / Prognus            
+        **/
 
         fixBody: function(html)
         {
@@ -996,7 +1063,7 @@
         * Handles XMPP Ping request and sends Pong as defined by XEP-0199: XMPP Ping
         *   (http://xmpp.org/extensions/xep-0199.html)
         * @param String
-        */
+        **/
         handlePing: function(e){
             var xmpp = this;
             var id = e.attr('id');
@@ -1018,7 +1085,7 @@ var Base64 = (function () {
         /**
          * Encodes a string in base64
          * @param {String} input The string to encode in base64.
-         */
+         **/
         encode: function (input) {
             var output = "";
             var chr1, chr2, chr3;
@@ -1051,7 +1118,7 @@ var Base64 = (function () {
         /**
          * Decodes a base64 string.
          * @param {String} input The string to decode.
-         */
+         **/
         decode: function (input) {
             var output = "";
             var chr1, chr2, chr3;
@@ -1089,45 +1156,45 @@ var Base64 = (function () {
 })();
 
 
-/*
+/**
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
  * Digest Algorithm, as defined in RFC 1321.
  * Version 2.1 Copyright (C) Paul Johnston 1999 - 2002.
  * Other contributors: Greg Holt, Andrew Kepert, Ydnar, Lostinet
  * Distributed under the BSD License
  * See http://pajhome.org.uk/crypt/md5 for more info.
- */
+ **/
 
 var MD5 = (function () {
-    /*
+    /**
      * Configurable variables. You may need to tweak these to be compatible with
      * the server-side, but the defaults work in most cases.
-     */
+     **/
     var hexcase = 0;  /* hex output format. 0 - lowercase; 1 - uppercase */
     var b64pad  = ""; /* base-64 pad character. "=" for strict RFC compliance */
     var chrsz   = 8;  /* bits per input character. 8 - ASCII; 16 - Unicode */
 
-    /*
+    /**
      * Add integers, wrapping at 2^32. This uses 16-bit operations internally
      * to work around bugs in some JS interpreters.
-     */
+     **/
     var safe_add = function (x, y) {
         var lsw = (x & 0xFFFF) + (y & 0xFFFF);
         var msw = (x >> 16) + (y >> 16) + (lsw >> 16);
         return (msw << 16) | (lsw & 0xFFFF);
     };
 
-    /*
+    /**
      * Bitwise rotate a 32-bit number to the left.
-     */
+     **/
     var bit_rol = function (num, cnt) {
         return (num << cnt) | (num >>> (32 - cnt));
     };
 
-    /*
+    /**
      * Convert a string to an array of little-endian words
      * If chrsz is ASCII, characters >255 have their hi-byte silently ignored.
-     */
+     **/
     var str2binl = function (str) {
         var bin = [];
         var mask = (1 << chrsz) - 1;
@@ -1138,9 +1205,9 @@ var MD5 = (function () {
         return bin;
     };
 
-    /*
+    /**
      * Convert an array of little-endian words to a string
-     */
+     **/
     var binl2str = function (bin) {
         var str = "";
         var mask = (1 << chrsz) - 1;
@@ -1151,9 +1218,9 @@ var MD5 = (function () {
         return str;
     };
 
-    /*
+    /**
      * Convert an array of little-endian words to a hex string.
-     */
+     **/
     var binl2hex = function (binarray) {
         var hex_tab = hexcase ? "0123456789ABCDEF" : "0123456789abcdef";
         var str = "";
@@ -1165,9 +1232,9 @@ var MD5 = (function () {
         return str;
     };
 
-    /*
+    /**
      * Convert an array of little-endian words to a base-64 string
-     */
+     **/
     var binl2b64 = function (binarray) {
         var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
         var str = "";
@@ -1186,9 +1253,9 @@ var MD5 = (function () {
         return str;
     };
 
-    /*
+    /**
      * These functions implement the four basic operations the algorithm uses.
-     */
+     **/
     var md5_cmn = function (q, a, b, x, s, t) {
         return safe_add(bit_rol(safe_add(safe_add(a, q),safe_add(x, t)), s),b);
     };
@@ -1209,9 +1276,9 @@ var MD5 = (function () {
         return md5_cmn(c ^ (b | (~d)), a, b, x, s, t);
     };
 
-    /*
+    /**
      * Calculate the MD5 of an array of little-endian words, and a bit length
-     */
+     **/
     var core_md5 = function (x, len) {
         /* append padding */
         x[len >> 5] |= 0x80 << ((len) % 32);
@@ -1307,9 +1374,9 @@ var MD5 = (function () {
     };
 
 
-    /*
+    /**
      * Calculate the HMAC-MD5, of a key and some data
-     */
+     **/
     var core_hmac_md5 = function (key, data) {
         var bkey = str2binl(key);
         if(bkey.length > 16) { bkey = core_md5(bkey, key.length * chrsz); }
@@ -1326,11 +1393,11 @@ var MD5 = (function () {
     };
 
     var obj = {
-        /*
+        /**
          * These are the functions you'll usually want to call.
          * They take string arguments and return either hex or base-64 encoded
          * strings.
-         */
+         **/
         hexdigest: function (s) {
             return binl2hex(core_md5(str2binl(s), s.length * chrsz));
         },
@@ -1355,9 +1422,9 @@ var MD5 = (function () {
             return binl2str(core_hmac_md5(key, data));
         },
 
-        /*
+        /**
          * Perform a simple self-test to see if the VM is working
-         */
+         **/
         test: function () {
             return MD5.hexdigest("abc") === "900150983cd24fb0d6963f7d28e17f72";
         }
