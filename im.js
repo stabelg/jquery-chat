@@ -82,7 +82,7 @@
   		$container_body = $("<div/>"),
   		statusClasses = settings.onlineClass + " " + settings.awayClass + " " + settings.busyClass + " " + settings.offlineClass,
 		t = null,
-		user = settings.jid.split("@")[0],
+		user = settings.username;//settings.jid.split("@")[0],
 		contacts = [];
 
   		prepare($container, user);
@@ -157,7 +157,7 @@
 			if(settings.debug)
 				debug("Connecting to xmpp");
 			connection_options = {
-				resource:settings.resource, jid:settings.jid, password:settings.password, url:settings.url,
+				"resource":settings.resource, "username":settings.username, "password":settings.password, "url":settings.url, "domain" : settings.domain,				
 				onDisconnect:function(){
 					destroy($container_list,$container);
 					if(settings.debug)
@@ -284,10 +284,10 @@
 					}
 					clearTimeout(alfabetic);
 					alfabetic = setTimeout(function(){
-						$container_list.find("li").tsort("."+settings.onlineClass, "span.chat-contact-name",{charOrder:"a[бавд]c[з]e[йикл]i[нмоп]o[утфц]u[ъщыь]"});
-						$container_list.find("li").tsort("."+settings.busyClass, "span.chat-contact-name",{charOrder:"a[бавд]c[з]e[йикл]i[нмоп]o[утфц]u[ъщыь]"});
-						$container_list.find("li").tsort("."+settings.awayClass, "span.chat-contact-name",{charOrder:"a[бавд]c[з]e[йикл]i[нмоп]o[утфц]u[ъщыь]"});
-						$container_list.find("li").tsort("."+settings.offlineClass, "span.chat-contact-name",{charOrder:"a[бавд]c[з]e[йикл]i[нмоп]o[утфц]u[ъщыь]"});
+						$container_list.find("li").tsort("."+settings.onlineClass, "span.chat-contact-name",{charOrder:"a[пїЅпїЅпїЅпїЅ]c[пїЅ]e[пїЅпїЅпїЅпїЅ]i[пїЅпїЅпїЅпїЅ]o[пїЅпїЅпїЅпїЅ]u[пїЅпїЅпїЅпїЅ]"});
+						$container_list.find("li").tsort("."+settings.busyClass, "span.chat-contact-name",{charOrder:"a[пїЅпїЅпїЅпїЅ]c[пїЅ]e[пїЅпїЅпїЅпїЅ]i[пїЅпїЅпїЅпїЅ]o[пїЅпїЅпїЅпїЅ]u[пїЅпїЅпїЅпїЅ]"});
+						$container_list.find("li").tsort("."+settings.awayClass, "span.chat-contact-name",{charOrder:"a[пїЅпїЅпїЅпїЅ]c[пїЅ]e[пїЅпїЅпїЅпїЅ]i[пїЅпїЅпїЅпїЅ]o[пїЅпїЅпїЅпїЅ]u[пїЅпїЅпїЅпїЅ]"});
+						$container_list.find("li").tsort("."+settings.offlineClass, "span.chat-contact-name",{charOrder:"a[пїЅпїЅпїЅпїЅ]c[пїЅ]e[пїЅпїЅпїЅпїЅ]i[пїЅпїЅпїЅпїЅ]o[пїЅпїЅпїЅпїЅ]u[пїЅпїЅпїЅпїЅ]"});
 						$container.unblock();
 					},1000);
 				},
