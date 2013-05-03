@@ -288,7 +288,7 @@
 					var dialogs = $("#"+md5_contact+"_chat");
 					if(select.length){
 						select.find('.chat-contact-description')
-						.html(presence['status'] ? " ("+presence['status']+")" : "");
+						.html(presence['status'] ? " ("+presence['status']+") " : "");
 
 						select.find("div.chat-status")
 						.removeClass(statusClasses)
@@ -320,7 +320,7 @@
 						$container_list.find("li").tsort("."+settings.busyClass, "span.chat-contact-name",{charOrder:"a[����]c[�]e[����]i[����]o[����]u[����]"});
 						$container_list.find("li").tsort("."+settings.awayClass, "span.chat-contact-name",{charOrder:"a[����]c[�]e[����]i[����]o[����]u[����]"});
 						$container_list.find("li").tsort("."+settings.offlineClass, "span.chat-contact-name",{charOrder:"a[����]c[�]e[����]i[����]o[����]u[����]"});
-						$container.unblock();
+						//$container.unblock();
 					},1000);
 				},
 				onError: function(error){
@@ -364,10 +364,12 @@
    					if(settings.debug)
 						debug(roster);		
 
-					roster.jid = roster.jid.match(/^[\w\W][^\/]+[^\/]/g)[0];
-   					var md5_contact = MD5.hexdigest(roster.jid);
+					var _rosterJid = roster.jid;
+					_rosterJid = _rosterJid.match(/^[\w\W][^\/]+[^\/]/g)[0]; 
+   					
+   					var md5_contact = MD5.hexdigest(_rosterJid);
 					var select = $("#"+md5_contact);
-					var from = roster['name'] ? roster['name'] : roster.jid;
+					var from = roster['name'] ? roster['name'] : _rosterJid;
 
 					contacts[md5_contact] = roster;
 					contacts[md5_contact]['from'] = from;
@@ -398,7 +400,7 @@
 							var id = md5_contact+"_chat";
 							var conversation = $("#"+id);
 							if(conversation.length == 0){
-								conversationDialog = openChat({title:from, from: roster.jid, id: id, md5_id:md5_contact});
+								conversationDialog = openChat({"title":from, "from": _rosterJid, "id": id, "md5_id":md5_contact});
 								conversationDialog.parent().find(".ui-dialog-titlebar").prepend(status.clone().removeClass("chatting"));
 							}
 							else{
@@ -407,6 +409,14 @@
 							}
 						});
 						$container_list.append(contact);	
+
+						// Presence automatic
+						if( $.trim(roster.subscription) == "from" ){
+							// console.log(contacts[md5_contact] );//contacts[$(this).attr('id')]
+							// console.log(_rosterJid + " -- " + roster.subscription );
+							authorize(contacts[md5_contact], null);
+						}
+
 					}else{
 						select.find(".chat-contact-name").html(from);
 					}
@@ -424,9 +434,9 @@
 	  		if(settings.debug)
 					debug("Preparing");
 
-			container.block({ 
+			/*container.block({ 
                 message: '<h3>Please Wait</h3>'
-            });
+            });*/
 
 			var div = $("<div/>")
 			.addClass("chat-title chat-me")
@@ -559,7 +569,7 @@
 			div.wijdialog({
 				autoOpen: true,
 				title: data ? 'Edit Contact' : 'Add Contact',
-				draggable: false,
+				draggable: true,
 				dialogClass: "add-contact-dialog",
 				captionButtons: {
 	                pin: { visible: false },
@@ -788,13 +798,13 @@
 	  		containerList.empty();
 	  		var reconnect = function(e){
 	  			reconnectButton.unbind('click', reconnect).addClass("chat-status loading-chat");
-	  			$container.block({ 
-	                message: '<h3>Please Wait</h3>'
-	            });
+	  			// $container.block({ 
+	     //            message: '<h3>Please Wait</h3>'
+	     //        });
 	  			e.preventDefault();
 	  			$.xmpp.connect(connection_options);
 	  		}
-	  		$container.unblock();
+	  		//$container.unblock();
 	  		reconnectButton.removeClass(statusClasses).removeClass("chat-status loading-chat").addClass("retry").click(reconnect);
 	  		$(".chat-conversation-dialog textarea").attr("disabled", "disabled");
 	  	}
