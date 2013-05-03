@@ -1002,12 +1002,21 @@
                     }
                     else
                     {    
+                        var _statusContact = "";
+
+                        if( e.find("status").length > 0  )
+                        {    
+                            _statusContact = e.find("status").html();
+                            _statusContact = _statusContact.replace(")","");
+                            _statusContact = _statusContact.replace("(","");
+                        }
+
                         xmpp.onPresence(
                         {
                             "from"      : e.attr("from"),
                             "to"        : e.attr("to"),
                             "show"      : (e.find("show").html() ) ? e.find("show").html() : ( e.attr("type") ? e.attr("type") : "available"),
-                            "status"    : e.find("status").html()
+                            "status"    : _statusContact
                         });
                     }
                     
