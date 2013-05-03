@@ -129,8 +129,13 @@
 	        className: 'chat-contact-context-menu',
 	        autoHide: true,
 	        items: {
+	            "authorize": {name: "Authorize", icon: "block", callback: function(key, opt){ 
+	            	//contacts[$(this).attr('id')] = user data
+	            	authorize(contacts[$(this).attr('id')], null);
+	            }},
 	            "block": {name: "Block", icon: "block", callback: function(key, opt){ 
 	            	//contacts[$(this).attr('id')] = user data
+	            	authorize(contacts[$(this).attr('id')], "unavailable");	            	
 	            }},
 	            "update": {name: "Update", icon: "edit", callback: function(key, opt){ 
 	            	//contacts[$(this).attr('id')] = user data
@@ -364,7 +369,7 @@
 					var select = $("#"+md5_contact);
 					var from = roster['name'] ? roster['name'] : roster.jid;
 
-					if(roster.subscription == "from" || roster.subscription == "subscribe"){
+					/*if(roster.subscription == "from" || roster.subscription == "subscribe"){
 						if(!$('#'+md5_contact+'_noty').length){
 							noty({
 								text: 'The '+from+' wants to see when you are online',
@@ -392,7 +397,7 @@
 						}
 					}else if(roster.subscription == "to"){
 						$.xmpp.subscription({to:roster.jid, type:'subscribed'});
-					}
+					}*/
 
 					contacts[md5_contact] = roster;
 					contacts[md5_contact]['from'] = from;
@@ -626,6 +631,23 @@
 				}
 			});
 			//.appendTo("body");	
+	  	}
+
+		function authorize(data, subscription){
+	  		var _subscription = ""
+	  		
+	  		if( subscription == "unavailable"){
+	  			_subscription = subscription;
+	  		}else{
+		  		if( data.subscription = "none" ){
+		  			_subscription = "subscribe";
+		  		}
+		
+		  		if( data.subscription == "from" ){
+		  			_subscription = "subscribe";
+		  		}
+	  		}
+	  		$.xmpp.subscription({"to":data.jid, "type":_subscription});
 	  	}
 
 	  	function generateContacts(container_list){
