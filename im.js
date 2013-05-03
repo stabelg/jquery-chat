@@ -222,7 +222,16 @@
 					if(message.body){
 						if(conversation.length == 0){
 							conversation = openChat({title: (contacts[id] ? contacts[id]['from']:message.from) , from:message.from, id: id+"_chat", md5_id:id});
-							conversation.parent().find(".ui-dialog-titlebar").prepend($("#"+id).find(".chat-status").clone().removeClass("chatting"));
+
+							var status = $("#"+id).find(".chat-status").clone().removeClass("chatting");
+
+							if(!status.length){
+								status = $("<div/>")
+								.addClass("chat-status")
+								.addClass(settings.offlineClass);
+							}
+
+							conversation.parent().find(".ui-dialog-titlebar").prepend(status);
 						}else{
 							conversation.wijdialog("open");
 						}
@@ -239,16 +248,20 @@
 						conversation.parent().find(".ui-dialog-titlebar").addClass("new");
 						document.title = settings.title;
 						document.getElementById("new_message_sound").play();
-					}/*else{
-						if(conversation_box.length){
-							conversation_box.next().show();
-							var showHideTipyng = function(){
-								conversation_box.next().hide();
+
+						noty({
+							text: '<strong>'+contacts[id]['from']+' say:</strong><br/>'+(message.body.length > 20 ? message.body.substr(0,17)+"..." : message.body), 
+							type: 'warning',
+							timeout: 3000,
+							layout: 'bottomRight',
+							callback: {
+								onCloseClick: function(e) {
+									console.log(e);
+									$("#"+id).click();
+								}
 							}
-							clearTimeout(t);
-							t=setTimeout(function(){showHideTipyng()},5000);
-						}
-					}*/			
+						});
+					}
 					if(settings.afterMessage)
 						afterMessage(message);		
 				},
@@ -281,6 +294,20 @@
 							.removeClass(statusClasses)
 							.addClass(statusClass);
 						}
+					}
+					if(statusClass == settings.onlineClass){
+						noty({
+							text: '<strong>'+contacts[md5_contact]['from']+'</strong><br/>is online now', 
+							type: 'success',
+							timeout: 3000,
+							layout: 'bottomRight',
+							callback: {
+								onCloseClick: function(e) {
+									console.log(e);
+									$(select).click();
+								}
+							}
+						});
 					}
 					clearTimeout(alfabetic);
 					alfabetic = setTimeout(function(){
@@ -337,7 +364,7 @@
 					var select = $("#"+md5_contact);
 					var from = roster['name'] ? roster['name'] : roster.jid;
 
-					if(roster.subscription == "from" || roster.subscription == "subscribe" || roster.subscription == "to"){
+					if(roster.subscription == "from" || roster.subscription == "subscribe"){
 						if(!$('#'+md5_contact+'_noty').length){
 							noty({
 								text: 'The '+from+' wants to see when you are online',
@@ -363,6 +390,8 @@
 							 	]	
 							});
 						}
+					}else if(roster.subscription == "to"){
+						$.xmpp.subscription({to:roster.jid, type:'subscribed'});
 					}
 
 					contacts[md5_contact] = roster;
