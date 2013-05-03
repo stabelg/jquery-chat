@@ -265,7 +265,7 @@ div.chat-title .chat-status:hover{
 }
 
 .context-menu-item.icon-block{
-	background-image: url("images/stop.png");
+	background-image: url("images/cancel.png");
 }
 
 .context-menu-item.icon-delete{
@@ -274,6 +274,10 @@ div.chat-title .chat-status:hover{
 
 .context-menu-item.icon-edit{
 	background-image: url("images/pencil.png");
+}
+
+.context-menu-item.icon-question{
+	background-image:url("images/question.png");
 }
 
 .emotion.surprised{
